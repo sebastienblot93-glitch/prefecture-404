@@ -65,3 +65,18 @@ export function basculerMuet() {
   try { localStorage.setItem('p404-muet', muet ? '1' : '0'); } catch { /* ignoré */ }
   return muet;
 }
+
+export function sonTelephone() {
+  const a = audio(); if (!a) return;
+  const t = a.currentTime;
+  [0, 0.45].forEach((dt) => {
+    const o1 = a.createOscillator(), o2 = a.createOscillator(), g = a.createGain();
+    o1.frequency.value = 440; o2.frequency.value = 480;
+    g.gain.setValueAtTime(0.0001, t + dt);
+    g.gain.exponentialRampToValueAtTime(0.12, t + dt + 0.02);
+    g.gain.setValueAtTime(0.12, t + dt + 0.3);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dt + 0.35);
+    o1.connect(g); o2.connect(g); g.connect(a.destination);
+    o1.start(t + dt); o2.start(t + dt); o1.stop(t + dt + 0.36); o2.stop(t + dt + 0.36);
+  });
+}

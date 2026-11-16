@@ -11,7 +11,7 @@
 <body>
   <div id="avertissement-fichier" class="avertissement" hidden>
     Le jeu doit être servi par un petit serveur web (les modules JavaScript ne se chargent pas depuis un fichier local).
-    Dans le dossier du projet, lancez <code>python3 -m http.server 8404</code> puis ouvrez <code>http://localhost:8404</code>.
+    Dans le dossier du projet, lancez <code>npm start</code> puis ouvrez <code>http://localhost:8404</code>.
   </div>
 
   <!-- ———————————————————— Accueil -->
@@ -38,27 +38,23 @@
         <p id="record-infini" class="discret"></p>
       </section>
 
-      <section class="volet">
-        <h2>Joueurs</h2>
-        <fieldset class="choix-joueurs">
-          <legend class="sr">Nombre de joueurs</legend>
-          <label><input type="radio" name="joueurs" value="1" checked> Seul au guichet</label>
-          <label><input type="radio" name="joueurs" value="2"> À deux : agent et géographe</label>
-          <label><input type="radio" name="joueurs" value="3"> À trois : avec un inspecteur</label>
-        </fieldset>
-        <div id="coop-details" class="coop-details" hidden>
-          <p>L'agent joue sur cet écran, sans atlas. Chaque coéquipier ouvre sa page sur son propre appareil, et vous parlez à voix haute (ou en visio).</p>
-          <label>Partie jouée
-            <select id="coop-jour">
-              <option value="1">Semaine 1</option>
-              <option value="2">Semaine 2</option>
-              <option value="3">Semaine 3</option>
-              <option value="infini">Mode infini (avec la graine ci-contre)</option>
-            </select>
+      <section class="volet volet-en-ligne">
+        <h2>Jouer à plusieurs</h2>
+        <p>De 2 à 3 joueurs, chacun sur son écran. Le dossier est réparti entre les postes, et les rôles tournent.</p>
+        <div id="en-ligne-ok" hidden>
+          <label class="champ-ligne">Votre nom
+            <input id="pseudo" type="text" maxlength="20" autocomplete="nickname" placeholder="Agent Dupont">
           </label>
-          <p><strong>Géographe :</strong> <a id="coop-geo" target="_blank" rel="noopener"></a></p>
-          <p id="coop-insp-ligne"><strong>Inspecteur :</strong> <a id="coop-insp" target="_blank" rel="noopener"></a></p>
+          <button id="btn-creer" class="btn-principal" type="button">Créer un salon</button>
+          <div class="rejoindre">
+            <label class="champ-ligne">Code du salon
+              <input id="code-salon" type="text" maxlength="4" autocomplete="off" spellcheck="false" placeholder="ABCD">
+            </label>
+            <button id="btn-rejoindre" class="btn" type="button">Rejoindre</button>
+          </div>
+          <p id="en-ligne-erreur" class="erreur" role="alert" hidden></p>
         </div>
+        <p id="en-ligne-ko" class="discret">Le jeu en ligne fonctionne quand le jeu est servi par son serveur (par exemple sur Render). Voir le README.</p>
       </section>
 
       <section class="volet volet-carriere">
@@ -71,7 +67,7 @@
 
   <!-- ———————————————————— Bureau -->
   <section id="ecran-bureau" class="ecran" hidden>
-    <div id="bureau" class="bureau" data-joueurs="1">
+    <div id="bureau" class="bureau">
       <header class="bandeau">
         <div class="bd-gauche">
           <p id="b-guichet" class="bd-guichet"></p>
@@ -93,7 +89,6 @@
       <main class="plan">
         <aside class="col-regl">
           <div id="reglement" class="memo"></div>
-          <p class="placard placard-regl">Le règlement est entre les mains de l'inspecteur.</p>
         </aside>
 
         <div class="col-dossier">
@@ -112,7 +107,6 @@
             <h2 class="atlas-titre">Atlas officiel</h2>
             <div id="atlas" class="atlas"></div>
           </div>
-          <p class="placard placard-atlas">L'atlas est entre les mains du géographe. Lisez-lui les déclarations.</p>
         </aside>
       </main>
     </div>

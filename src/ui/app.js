@@ -5,10 +5,12 @@ import { OBJETS, PIECES, SECTIONS, LIBELLE_DECISION, decider, noter } from '../m
 import { creerHasard } from '../moteur/hasard.js';
 import { genererDossier } from '../moteur/generateur.js';
 import { AGRAFE } from '../moteur/folklore.js';
+import { conseilErreur } from '../moteur/pedagogie.js';
 import { JOURNEES, contexteDe } from '../campagne/journees.js';
 import { contexteInfini, nouvelleGraine } from '../campagne/infini.js';
 import { monterAtlas } from './atlas.js';
 import { htmlReglement } from './reglement.js';
+import { initEnLigne } from './accueil-en-ligne.js';
 import { sonTampon, sonPapier, sonErreur, basculerMuet, estMuet } from './son.js';
 
 window.__p404 = true;
@@ -34,7 +36,6 @@ function ecrireCarriere(c) { try { localStorage.setItem('p404-carriere', JSON.st
 // ——— État de partie
 let P = null;
 let minuterie = null;
-let joueurs = 1;
 
 function afficherEcran(id) {
   $$('.ecran').forEach((e) => { e.hidden = e.id !== id; });
@@ -58,21 +59,6 @@ function rendreAccueil() {
   }).join('');
   $$('.btn-journee').forEach((b) => b.addEventListener('click', () => lancerCampagne(+b.dataset.jour)));
   $('#record-infini').textContent = car.infini ? `Record : ${car.infini} dossiers traités.` : '';
-  majLiensCoop();
-}
-
-function majLiensCoop() {
-  joueurs = +($('input[name="joueurs"]:checked')?.value ?? 1);
-  const jour = $('#coop-jour').value;
-  const graine = $('#graine').value.trim().toUpperCase();
-  const base = new URL('.', location.href).href;
-  const reglQ = jour === 'infini' ? `graine=${encodeURIComponent(graine || 'GRAINE')}` : `jour=${jour}`;
-  $('#coop-details').hidden = joueurs === 1;
-  $('#coop-geo').href = `${base}atlas.html`;
-  $('#coop-geo').textContent = `${base}atlas.html`;
-  $('#coop-insp').href = `${base}reglement.html?${reglQ}`;
-  $('#coop-insp').textContent = `${base}reglement.html?${reglQ}`;
-  $('#coop-insp-ligne').hidden = joueurs < 3;
 }
 
 // ——————————————————————————————— Lancement
@@ -80,14 +66,14 @@ function lancerCampagne(id) {
   const j = JOURNEES.find((x) => x.id === id);
   demarrer({
     mode: 'campagne', journee: j, contexte: contexteDe(j),
-    dossiers: j.dossiers, duree: Math.round(j.duree * (joueurs > 1 ? 1.5 : 1)),
+    dossiers: j.dossiers, duree: j.duree,
     titre: j.titre, intro: j.intro,
   });
 }
 
 function lancerInfini() {
   let graine = $('#graine').value.trim().toUpperCase();
-  if (!graine) { graine = nouvelleGraine(); $('#graine').value = graine; majLiensCoop(); }
+  if (!graine) { graine = nouvelleGraine(); $('#graine').value = graine; }
   const ctx = contexteInfini(graine);
   const h = creerHasard(`dossiers-${graine}`);
   demarrer({
@@ -104,7 +90,6 @@ function demarrer(cfg) {
     arrives: 1, prochaineArrivee: 40, intervalle: 40,
   };
   if (P.mode === 'infini') P.dossiers.push(genererDossier(P.hasard, P.contexte, 3, 1));
-  $('#bureau').dataset.joueurs = joueurs;
   $('#b-journee').textContent = P.titre;
   $('#b-guichet').textContent = `Guichet 404, ${SECTIONS[P.contexte.section].nom}`;
   $('#reglement').innerHTML = htmlReglement(P.contexte);
@@ -113,9 +98,7 @@ function demarrer(cfg) {
   majBandeau();
   afficherNote({
     titre: 'Note de service',
-    corps: `<p>${esc(P.intro)}</p>${joueurs > 1
-      ? `<p class="note-coop">Partie à ${joueurs} : ${joueurs === 2 ? "l'atlas est chez le géographe" : "l'atlas est chez le géographe, le règlement chez l'inspecteur"}. Lisez-leur les déclarations à voix haute.</p>`
-      : '<p class="note-coop">Cliquez sur une ligne du dossier pour la signaler comme anomalie, puis posez un tampon. Signaler juste rapporte un bonus.</p>'}`,
+    corps: `<p>${esc(P.intro)}</p><p class="note-coop">Cliquez sur une ligne du dossier pour la signaler comme anomalie, puis posez un tampon. Signaler juste rapporte un bonus.</p>`,
     bouton: 'Ouvrir le guichet',
     action: () => { cacherNote(); afficherDossier(); },
   });
@@ -172,6 +155,7 @@ function afficherDossier() {
   const total = P.mode === 'campagne' ? ` sur ${P.dossiers.length}` : '';
 
   $('#dossier').innerHTML = `
+    ${d.conseil ? `<aside class="postit" role="note"><span class="postit-de">Note du chef de bureau</span>${esc(d.conseil)}</aside>` : ''}
     <article class="formulaire" aria-label="Dossier ${esc(d.id)}">
       <header class="f-entete">
         <div><span class="f-ref">Formulaire 404-B</span><span class="f-titre">Demande d'une collectivité territoriale</span></div>
@@ -179,6 +163,7 @@ function afficherDossier() {
       </header>
       <div class="f-champ f-commune"><span class="f-label">Commune</span><span class="f-val">${esc(c.nom)}</span></div>
       <div class="f-champ"><span class="f-label">Objet de la demande</span><span class="f-val">${esc(o.libelle(d.objet))}</span></div>
+      <div class="f-champ f-condition"><span class="f-label">Condition d'éligibilité</span><span class="f-val">${esc(o.condition(d.objet))}</span></div>
       ${d.montant !== null ? `<div class="f-champ"><span class="f-label">Montant sollicité</span><span class="f-val">${euros(d.montant)}</span></div>` : ''}
       <div class="f-champ"><span class="f-label">Demandeur</span><span class="f-val">${esc(d.demandeur)}</span></div>
       <fieldset class="f-decl">
@@ -232,8 +217,9 @@ function poserTampon(decision, destination = null) {
   const ref = decider(d, P.contexte);
   const note = noter(ref, { decision, destination, signalements: P.signalements });
   P.score += note.points;
-  const penalite = P.mode === 'campagne' ? 12 : 20;
+  const penalite = d.conseil ? 0 : P.mode === 'campagne' ? 12 : 20; // dossiers d'apprentissage : sans pénalité
   if (!note.bonne) P.credibilite -= penalite;
+  P.dernierePenalite = penalite;
   P.resultats.push({ d, ref, decision, destination, note });
 
   const emp = $('#dossier .empreinte');
@@ -264,6 +250,7 @@ function afficherCorrection(ref, decision, destination, note) {
   if (note.bonne && ref.decision === 'TRANSFERER' && !note.justification)
     justif = `<p class="c-justif">Mauvaise destination : la commune relève de ${REGIONS[ref.destination]}.</p>`;
   const lignes = [...ref.explications, ...ref.motifs];
+  const lecon = conseilErreur(P.dossiers[P.index], ref, decision);
   const fin = P.mode === 'campagne' ? P.index + 1 >= P.dossiers.length : P.credibilite <= 0;
 
   // Les anomalies réelles apparaissent sur le dossier
@@ -272,10 +259,12 @@ function afficherCorrection(ref, decision, destination, note) {
   afficherNote({
     classe: note.bonne ? 'note-ok' : 'note-ko',
     lateral: true,
-    titre: note.bonne ? `Bonne décision, +${note.points} points` : `Décision erronée, crédibilité −${P.mode === 'campagne' ? 12 : 20}`,
+    titre: note.bonne ? `Bonne décision, +${note.points} points`
+      : P.dernierePenalite ? `Décision erronée, crédibilité −${P.dernierePenalite}` : "Décision erronée (période d'essai : sans pénalité)",
     mascotte: comm,
     corps: `
       ${note.bonne ? '' : `<p class="c-compare">Vous : <strong>${esc(vous)}</strong>. Attendu : <strong>${esc(attendu)}</strong>.</p>`}
+      ${lecon ? `<p class="c-lecon">${esc(lecon)}</p>` : ''}
       ${justif}
       <ul class="c-expl">${lignes.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>
       ${c.note && (!note.bonne || ref.anomalies.size) ? `<p class="c-savoir">Le saviez-vous ? ${esc(c.note)}</p>` : ''}`,
@@ -395,9 +384,7 @@ function finJournee(raison) {
 function init() {
   monterAtlas($('#atlas'));
   rendreAccueil();
-  $$('input[name="joueurs"]').forEach((r) => r.addEventListener('change', majLiensCoop));
-  $('#coop-jour').addEventListener('change', majLiensCoop);
-  $('#graine').addEventListener('input', majLiensCoop);
+  initEnLigne();
   $('#btn-infini').addEventListener('click', lancerInfini);
   $$('.tampon').forEach((t) => t.addEventListener('click', () =>
     (t.dataset.decision === 'TRANSFERER' ? ouvrirChoixRegion() : poserTampon(t.dataset.decision))));

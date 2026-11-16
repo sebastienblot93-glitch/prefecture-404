@@ -24,6 +24,7 @@ function d(id, spec) {
     registre: { insee: spec.registre ?? c.insee },
     attendu: spec.attendu,
     destination: spec.destination,
+    conseil: spec.conseil ?? null, // note du chef de bureau : dossier d'apprentissage, sans pénalité
   };
 }
 
@@ -39,17 +40,21 @@ export const JOURNEES = [
     dossiers: [
       d('S1-1', { commune: 'Rennes', objet: { type: 'attestation' }, decl: { dep: '35', region: '53' },
         demandeur: 'Mme Germaine Lavergne, secrétaire de mairie',
-        mot: 'Un dossier tout simple pour commencer, promis.', attendu: 'ACCEPTER' }),
+        mot: 'Un dossier tout simple pour commencer, promis.', attendu: 'ACCEPTER',
+        conseil: "Vérifiez chaque déclaration dans l'atlas : le département dans l'index des communes, puis la région dans la table des départements. Si tout est exact, tamponnez « Accepter »." }),
       d('S1-2', { commune: 'Saint-Malo', objet: { type: 'aide_littoral' }, montant: 25000,
         decl: { dep: '35', region: '53', littoral: true },
         demandeur: 'Mme Ginette Récépissé, élue aux mouettes et goélands',
-        mot: 'Nos remparts prennent les embruns de plein fouet.', attendu: 'ACCEPTER' }),
+        mot: 'Nos remparts prennent les embruns de plein fouet.', attendu: 'ACCEPTER',
+        conseil: "Ce fonds a une condition, écrite sous l'objet : la commune doit être bordée par la mer. Vérifiez-la dans l'onglet Littoral de l'atlas." }),
       d('S1-3', { commune: 'Nantes', objet: { type: 'attestation' }, decl: { dep: '44', region: '53' },
         demandeur: 'M. Lucien Paraphe, délégué au jumelage imaginaire',
-        mot: 'Nous sommes bretons de cœur, et donc de région.', attendu: 'RECTIFIER' }),
+        mot: 'Nous sommes bretons de cœur, et donc de région.', attendu: 'RECTIFIER',
+        conseil: "Une ligne fausse ne suffit pas à refuser. Demandez-vous : la condition de la demande est-elle remplie ? Si oui, l'erreur se corrige (Rectifier). On ne refuse que si la condition est fausse ou si le règlement l'interdit." }),
       d('S1-4', { commune: 'Marseille', objet: { type: 'attestation' }, decl: { dep: '13', region: '93' },
         demandeur: 'M. Marcel Contresigné, président de la société de pétanque',
-        mot: "On nous a dit que c'était plus rapide chez vous.", attendu: 'TRANSFERER', destination: '93' }),
+        mot: "On nous a dit que c'était plus rapide chez vous.", attendu: 'TRANSFERER', destination: '93',
+        conseil: "Toujours commencer par là : la commune est-elle dans une région de votre section ? Sinon, on transfère vers sa région, sans examiner le reste." }),
       d('S1-5', { commune: 'Le Mans', objet: { type: 'aide_littoral' }, montant: 40000,
         decl: { dep: '72', region: '52', littoral: true },
         demandeur: 'M. Gérard Formulaire, conseiller municipal délégué aux ronds-points',

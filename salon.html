@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Préfecture 404 — Salon</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect x=%274%27 y=%2716%27 width=%2756%27 height=%2732%27 rx=%274%27 fill=%27none%27 stroke=%27%23be2a31%27 stroke-width=%275%27/%3E%3Ctext x=%2732%27 y=%2742%27 font-family=%27Arial%27 font-weight=%27900%27 font-size=%2722%27 text-anchor=%27middle%27 fill=%27%23be2a31%27%3E404%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles/bureau.css">
+</head>
+<body>
+  <!-- Rejoindre via un lien partagé -->
+  <section id="ecran-rejoindre" class="ecran salon-centre" hidden>
+    <div class="volet salon-carte">
+      <p class="ct-emetteur">Bureau national de vérification des territoires</p>
+      <h1 class="salon-h1">Salon <span id="rj-code" class="code-salon"></span></h1>
+      <p>Vos collègues vous attendent au guichet.</p>
+      <label class="champ-ligne">Votre nom <input id="rj-pseudo" type="text" maxlength="20" autocomplete="nickname"></label>
+      <button id="rj-bouton" class="btn-principal" type="button">Rejoindre le salon</button>
+      <p id="rj-erreur" class="erreur" role="alert" hidden></p>
+      <p><a href="index.html">Retour à l'accueil</a></p>
+    </div>
+  </section>
+
+  <!-- Salle d'attente -->
+  <section id="ecran-attente" class="ecran salon-centre" hidden>
+    <div class="salle">
+      <div class="volet salon-carte">
+        <p class="ct-emetteur">Salle d'attente</p>
+        <h1 class="salon-h1">Salon <span id="at-code" class="code-salon"></span></h1>
+        <p>Donnez ce code à vos collègues, ou envoyez-leur le lien :</p>
+        <p class="lien-partage"><code id="at-lien"></code> <button id="at-copier" class="btn-mini-clair" type="button">Copier</button></p>
+        <h2>Équipe <span id="at-nb" class="discret"></span></h2>
+        <ul id="at-joueurs" class="liste-joueurs"></ul>
+      </div>
+      <div class="volet salon-carte">
+        <h2>Partie</h2>
+        <label class="champ-ligne">Journée
+          <select id="at-partie"></select>
+        </label>
+        <label class="champ-ligne" id="at-graine-ligne">Graine
+          <input id="at-graine" type="text" maxlength="10" placeholder="au hasard" spellcheck="false">
+        </label>
+        <label class="champ-ligne">Rotation des postes
+          <select id="at-rotation">
+            <option value="1">À chaque dossier</option>
+            <option value="2">Tous les 2 dossiers</option>
+            <option value="3">Tous les 3 dossiers</option>
+            <option value="4">Tous les 4 dossiers</option>
+            <option value="0">Jamais</option>
+          </select>
+        </label>
+        <p id="at-hote-info" class="discret"></p>
+        <button id="at-lancer" class="btn-principal" type="button">Lancer la partie</button>
+        <p id="at-erreur" class="erreur" role="alert" hidden></p>
+        <h2>Les postes</h2>
+        <dl class="postes">
+          <dt>Agent de guichet</dt><dd>Voit la commune, l'objet et sa condition. Tient les quatre tampons.</dd>
+          <dt>Géographe</dt><dd>Voit les déclarations, sans savoir de quelle commune il s'agit. Seul à avoir l'atlas. Annote les lignes fausses et répond au téléphone.</dd>
+          <dt>Inspecteur <span class="discret">(à 3)</span></dt><dd>Seul à connaître le règlement et les décrets. Contrôle montant, pièces et registre. Peut faire opposition à un tampon pendant 4 secondes.</dd>
+        </dl>
+        <p class="discret">À deux, le guichet reprend le travail de l'inspecteur, sans droit d'opposition.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Jeu -->
+  <section id="ecran-jeu" class="ecran" hidden>
+    <div class="bureau">
+      <header class="bandeau">
+        <div class="bd-gauche">
+          <p class="bd-guichet">Salon <strong id="j-code"></strong>, <span id="j-section"></span></p>
+          <p class="bd-journee"><span id="j-poste" class="badge-poste"></span> <span id="j-titre"></span></p>
+        </div>
+        <p id="j-horloge" class="horloge">09 h 00</p>
+        <div class="bd-droite">
+          <div class="cred">
+            <span class="cred-label">Crédibilité</span>
+            <div id="j-cred" class="cred-barre" role="meter" aria-label="Crédibilité" aria-valuemin="0" aria-valuemax="100"></div>
+          </div>
+          <p id="j-score" class="score">0 pts</p>
+          <button id="btn-son" class="btn-mini" type="button">Son actif</button>
+        </div>
+      </header>
+      <p id="j-annonce" class="annonce" role="status" hidden></p>
+      <div id="j-equipe" class="equipe"></div>
+      <main id="j-plan" class="plan plan-en-ligne"></main>
+      <aside id="j-atlas-hote" class="atlas-boite atlas-en-ligne" hidden>
+        <h2 class="atlas-titre">Atlas officiel</h2>
+        <div id="atlas" class="atlas"></div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- Bilan -->
+  <section id="ecran-bilan" class="ecran" hidden>
+    <div id="bilan" class="bilan"></div>
+  </section>
+
+  <p id="connexion" class="connexion" hidden>Connexion au Bureau perdue, reconnexion…</p>
+  <script type="module" src="src/ui/salon.js"></script>
+</body>
+</html>

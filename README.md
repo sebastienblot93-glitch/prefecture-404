@@ -14,28 +14,33 @@ Parties de 10 à 20 min, solo ou coop à 2 ou 3 joueurs.
 
 ## Jouer
 
-Le jeu est un site statique, sans dépendance ni étape de build.
+### Seul
+
+N'importe quel hébergement statique suffit (GitHub Pages : *Settings → Pages → Deploy from a branch → `main` / root*). En local :
 
 ```bash
-python3 -m http.server 8404     # ou : npm run serve
-# puis ouvrir http://localhost:8404
+npm start            # serveur du jeu (solo + en ligne) sur http://localhost:8404
 ```
 
-(Ouvrir `index.html` directement depuis le disque ne fonctionne pas : les navigateurs bloquent les modules JavaScript en `file://`.)
+### À plusieurs, en ligne (2 ou 3 joueurs)
 
-Pour le publier : *Settings → Pages → Deploy from a branch → `main` / root*.
+Le mode en ligne a besoin du petit serveur Node du jeu (`server/`, aucune dépendance). Déploiement sur Render :
 
-### En coopération
+1. Sur [dashboard.render.com](https://dashboard.render.com) : **New → Blueprint**, choisir le dépôt `prefecture-404` (le fichier `render.yaml` configure tout).
+2. Ouvrir l'adresse donnée par Render (`https://prefecture-404-xxxx.onrender.com`).
+3. Saisir son nom, **Créer un salon**, puis envoyer le code à 4 lettres (ou le lien) aux collègues.
 
-| Joueur | Page |
-|---|---|
-| Agent de guichet | `index.html`, choisir « À deux » ou « À trois » |
-| Géographe | `atlas.html` |
-| Inspecteur | `reglement.html?jour=1` (ou `?graine=ABCDE` en mode infini) |
+Sur l'offre gratuite de Render, le serveur s'endort après 15 min sans visite : le premier chargement prend alors 30 à 60 s, et les salons en cours sont effacés.
 
-Chacun sur son appareil. On parle, on se trompe, on tamponne trop vite.
+| Poste | Voit | Agit |
+|---|---|---|
+| Agent de guichet | commune, objet, condition d'éligibilité, demandeur | pose les quatre tampons |
+| Géographe | les déclarations (sans le nom de la commune !) et l'atlas | annote les lignes fausses, répond au téléphone |
+| Inspecteur (à 3) | règlement, décrets, montant, pièces, registre | annote pièces et registre, peut faire **opposition** à un tampon pendant 4 s |
 
-### Raccourcis
+À deux, le guichet reprend le rôle de l'inspecteur. Les postes tournent tous les N dossiers (réglable par l'hôte).
+
+### Raccourcis (guichet)
 
 `1` Accepter · `2` Rectifier · `3` Transférer · `4` Refuser · `Entrée` dossier suivant
 
@@ -44,6 +49,8 @@ Chacun sur son appareil. On parle, on se trompe, on tamponne trop vite.
 - 3 journées de campagne écrites à la main (24 dossiers) + mode infini généré à partir d'une graine
 - 83 communes, 101 départements, 18 régions, 101 chefs-lieux, 27 cours d'eau, 5 massifs, 4 mers
 - Atlas thématique, règlement et décrets du jour, extrait de registre falsifiable
+- Mode en ligne : salons à code, dossier réparti entre les postes, rotation des rôles, standard téléphonique, opposition de l'inspecteur
+- Semaine 1 en période d'essai : notes du chef de bureau, condition d'éligibilité affichée, explication ciblée après chaque erreur
 - Explication pédagogique après chaque dossier, bilan de journée, carrière (de stagiaire à directeur du tampon national)
 
 ## Fiabilité des données
@@ -51,7 +58,7 @@ Chacun sur son appareil. On parle, on se trompe, on tamponne trop vite.
 Aucun verdict n'est écrit à la main : le moteur le calcule depuis la base, et tout fait incertain est exclu des dossiers. Codes et noms sont vérifiés en continu contre l'API officielle `geo.api.gouv.fr`. Détails dans [docs/DONNEES.md](docs/DONNEES.md).
 
 ```bash
-npm test                          # 16 tests : données, moteur, campagne, 3 000 dossiers générés
+npm test                          # 25 tests : données, moteur, campagne, générateur, salons en ligne
 node tools/verifier-officiel.mjs  # comparaison avec le Code officiel géographique
 ```
 

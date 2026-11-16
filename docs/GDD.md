@@ -2,7 +2,7 @@
 
 > *Géographie + déduction + Papers, Please.* Vous travaillez au Bureau national de vérification des territoires. Des communes françaises vous envoient des dossiers plus ou moins crédibles. Vérifiez, croisez, tamponnez.
 
-Parties de 10 à 20 min, en solo ou en coop (2 ou 3 joueurs). Complexité technique faible à moyenne.
+Parties de 10 à 20 min, en solo ou en ligne (2 ou 3 joueurs). Complexité technique faible à moyenne.
 
 ---
 
@@ -43,19 +43,38 @@ L'ordre est strict et affiché dans le règlement du joueur :
 3. **Rectifier** : au moins une déclaration est fausse, mais elle ne conditionne pas la demande.
 4. **Accepter** : tout est conforme.
 
+**Apprentissage.** Le formulaire affiche la condition d'éligibilité de la demande. Les quatre premiers dossiers de la semaine 1 portent une note du chef de bureau et ne coûtent pas de crédibilité. Après une erreur, une explication ciblée dit pourquoi *ce* tampon n'était pas le bon (ex. : refuser alors que la condition est remplie).
+
 **Justification.** Avant de tamponner, le joueur clique sur les lignes qu'il juge fausses (marque au crayon rouge). Bonne décision = 10 pts, + 5 si les signalements sont exacts. Une mauvaise décision coûte de la crédibilité. Après chaque dossier, les vraies anomalies sont surlignées et expliquées.
 
-## 4. Rôles coopératifs
+## 4. Coopération en ligne
 
-| Rôle | Voit | Ne voit pas | Page |
+### Principe : personne n'a le dossier complet
+
+Le serveur (`server/`) est l'unique arbitre : il détient les dossiers, applique le moteur et n'envoie à chaque joueur **que** sa part du dossier. Les joueurs rejoignent un salon avec un code à 4 lettres et doivent se parler (à voix haute ou en visio).
+
+| Poste | Voit | Agit | Ce qui le rend actif |
 |---|---|---|---|
-| Agent de guichet | dossiers, tampons | atlas (et règlement à 3) | `index.html` |
-| Géographe | atlas thématique complet | dossiers | `atlas.html` |
-| Inspecteur | règlement + décrets du jour | dossiers, atlas | `reglement.html?jour=N` ou `?graine=XXXXX` |
+| Agent de guichet | commune, objet, condition d'éligibilité, demandeur, mot | les 4 tampons | il décide, sous la pression de tous |
+| Géographe | les déclarations **sans le nom de la commune**, l'atlas | annote les lignes fausses (bonus de justification) ; répond au **téléphone** | il doit demander la commune, enquêter dans l'atlas **et** décrocher : un appel toutes les 22 à 40 s, 15 s pour répondre (+3 pts, −5 de crédibilité en cas d'erreur ou d'appel manqué) |
+| Inspecteur (à 3) | règlement, décrets, montant, pièces, registre | annote pièces et registre ; **opposition** à un tampon pendant 4 s | il est seul à connaître les décrets ; il peut sauver (ou retarder) l'équipe |
 
-Aucun serveur n'est nécessaire : chaque rôle ouvre sa page sur son appareil, et les joueurs parlent (en vrai ou en visio). En mode infini, la **graine** garantit que l'inspecteur voit les mêmes décrets que le guichet.
+À deux, le guichet reprend le bureau de l'inspecteur (sans droit d'opposition).
 
-L'atlas est volontairement organisé **par thème**. L'index des communes ne donne que le département, et il faut ouvrir la table des départements pour la région, celle des cours d'eau pour un fleuve, etc. Le géographe enquête au lieu de lire une réponse.
+### Rotation des postes
+
+L'hôte choisit : à chaque dossier, tous les 2, 3 ou 4 dossiers, ou jamais. Une annonce signale chaque changement, et le bandeau indique toujours qui tient quel poste et quand aura lieu la prochaine rotation.
+
+### Correction commune
+
+Après chaque tampon, toute l'équipe voit le dossier complet, les anomalies surlignées et l'explication. C'est le moment où l'on comprend qui avait raison.
+
+### Pistes pour la suite
+
+- **Dossiers à deux voix** : certaines pièces n'arrivent que chez le géographe (rapport de terrain), d'autres que chez l'inspecteur.
+- **Téléphone qui interfère** : un appelant fournit une information utile au dossier en cours, ou une fausse piste.
+- **Carte muette** pour le géographe (contours des départements, licence Etalab) au lieu d'une partie des tables.
+- **Événements de bureau** : coupure de courant (l'atlas s'éteint 10 s), visite du préfet (double points, double pénalité).
 
 ## 5. Progression
 
@@ -83,11 +102,12 @@ src/moteur/
   hasard.js        aléatoire à graine (même graine = même partie pour tous)
 src/campagne/    journées écrites à la main + contexte du mode infini
 src/ui/          interface (vanilla JS, aucune dépendance, aucun build)
-tests/           node --test : données, moteur, 24 dossiers écrits, 3 000 dossiers générés
+server/          serveur en ligne : salon.mjs (logique, testable) + serveur.mjs (HTTP/SSE)
+tests/           node --test : données, moteur, 24 dossiers écrits, 3 000 dossiers générés, salons
 tools/           vérification officielle (geo.api.gouv.fr), fiche de relecture humaine
 ```
 
-Choix techniques : HTML/CSS/JS sans framework ni étape de build, servi tel quel par GitHub Pages. Sons synthétisés en WebAudio (aucun fichier). Toute la logique est testable dans Node.
+Choix techniques : HTML/CSS/JS sans framework ni étape de build. Le solo fonctionne sur n'importe quel hébergement statique ; le mode en ligne utilise `server/serveur.mjs` (Node 20+, aucune dépendance), qui sert aussi les fichiers du jeu. Sons synthétisés en WebAudio (aucun fichier). Toute la logique est testable dans Node.
 
 ## 7. La cohérence des données (le vrai défi technique)
 
@@ -116,8 +136,8 @@ Voir [DONNEES.md](DONNEES.md). En résumé, trois verrous :
 - Décorations de bureau débloquables, nouvelles répliques d'Agrafe, administrés récurrents.
 - Classement quotidien : graine du jour partagée par tous, score publié.
 
-**Lot 4 — Coop en réseau (optionnel)**
-- Synchronisation temps réel (WebRTC ou petit serveur WebSocket) : l'inspecteur peut réellement **bloquer** un tampon avant validation.
+**Lot 4 — Coop en ligne** ✅ (v0.2)
+- Serveur Node sans dépendance (SSE + HTTP), salons à code, vues filtrées par poste, rotation, téléphone, opposition. Déploiement Render (`render.yaml`).
 
 ## 9. Écrire un bon dossier
 

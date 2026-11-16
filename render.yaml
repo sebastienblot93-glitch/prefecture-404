@@ -1,0 +1,12 @@
+# Blueprint Render : Dashboard → New → Blueprint → choisir ce dépôt.
+services:
+  - type: web
+    name: prefecture-404
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/sante
+    envVars:
+      - key: NODE_VERSION
+        value: "22"

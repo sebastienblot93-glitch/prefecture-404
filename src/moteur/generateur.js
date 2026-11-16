@@ -41,7 +41,7 @@ function objetsInegibles(c, niveau) {
 }
 
 // Valeur certainement fausse pour un type de déclaration
-function fausser(h, c, type) {
+export function fausser(h, c, type) {
   const essais = {
     dep: () => (h.chance(0.5)
       ? h.choisir(DEPS_METRO.filter((d) => d !== c.dep && DEPARTEMENTS[d].region === regionDe(c)))

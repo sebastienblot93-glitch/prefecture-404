@@ -29,30 +29,36 @@ export const OBJETS = {
   attestation: {
     libelle: () => 'Attestation de conformité territoriale',
     court: 'Attestation', montant: false, premisse: null,
+    condition: () => 'Aucune',
   },
   aide_littoral: {
     libelle: () => "Fonds d'aide aux communes littorales",
     court: 'Fonds littoral', montant: true,
+    condition: () => 'La commune doit être bordée par la mer',
     premisse: () => ({ type: 'littoral', valeur: true }),
   },
   crue: {
     libelle: (o) => `Plan de prévention des crues ${duCoursEau(o.fleuve)}`,
     court: 'Plan crues', montant: true,
+    condition: (o) => `La commune doit être au bord ${duCoursEau(o.fleuve)}`,
     premisse: (o) => ({ type: 'fleuve', valeur: o.fleuve }),
   },
   montagne: {
     libelle: (o) => `Dotation neige et montagne (${o.massif})`,
     court: 'Dotation montagne', montant: true,
+    condition: (o) => `La commune doit être située dans ${MASSIFS[o.massif].libelle}`,
     premisse: (o) => ({ type: 'massif', valeur: o.massif }),
   },
   prefecture: {
     libelle: () => "Ravalement de l'hôtel de préfecture",
     court: 'Ravalement préfecture', montant: true,
+    condition: () => 'La commune doit être chef-lieu de département',
     premisse: () => ({ type: 'prefecture', valeur: true }),
   },
   rattachement: {
     libelle: (o) => `Rattachement au département ${libDep(o.dep)}`,
     court: 'Rattachement', montant: false, premisse: null,
+    condition: () => 'Voir le règlement',
   },
 };
 
