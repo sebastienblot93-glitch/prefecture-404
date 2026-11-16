@@ -60,5 +60,5 @@ Sources conseillées : IGN Géoportail (limites communales et trait de côte), S
 
 ## 5. État actuel
 
-- Régions, départements, chefs-lieux : saisis d'après le COG ; vérification officielle en CI.
-- 79 communes. Faits géographiques limités aux cas nets, avec une relecture humaine à faire.
+- Régions, départements et 83 communes : **conformes au Code officiel géographique** (vérification geo.api.gouv.fr du 16/11/2026, aucune divergence). Chefs-lieux : double saisie concordante.
+- Faits géographiques (littoral, mer, cours d'eau, massifs) : limités aux cas nets, relecture humaine à faire (RELECTURE.md).

@@ -74,7 +74,7 @@ Carrière : stagiaire → agent territorial → responsable des trombones → ch
 ```
 src/data/        référentiel (seule source de vérité)
   territoires.js   18 régions, 101 départements, 101 chefs-lieux (codes COG INSEE)
-  communes.js      79 fiches communes : littoral, mer, cours d'eau, massif, notes pédagogiques
+  communes.js      83 fiches communes : littoral, mer, cours d'eau, massif, notes pédagogiques
   geographie.js    cours d'eau, massifs, mers + régions qu'ils touchent
 src/moteur/
   verite.js        évalue une déclaration : vrai / faux / indécidable

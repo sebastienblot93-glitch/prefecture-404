@@ -42,7 +42,7 @@ Chacun sur son appareil. On parle, on se trompe, on tamponne trop vite.
 ## Contenu actuel (MVP)
 
 - 3 journées de campagne écrites à la main (24 dossiers) + mode infini généré à partir d'une graine
-- 79 communes, 101 départements, 18 régions, 101 chefs-lieux, 27 cours d'eau, 5 massifs, 4 mers
+- 83 communes, 101 départements, 18 régions, 101 chefs-lieux, 27 cours d'eau, 5 massifs, 4 mers
 - Atlas thématique, règlement et décrets du jour, extrait de registre falsifiable
 - Explication pédagogique après chaque dossier, bilan de journée, carrière (de stagiaire à directeur du tampon national)
 
