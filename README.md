@@ -38,6 +38,7 @@ Pensé pour jouer **au bureau, sans se parler** :
 - **L'atlas est coupé** : ses 6 onglets sont répartis entre les joueurs, et la répartition change à chaque dossier. Chacun reçoit au moins un onglet utile, et « Communes » / « Départements » sont toujours chez deux personnes différentes.
 - On partage ce qu'on trouve en **épinglant** une ligne de son atlas sur le dossier commun.
 - **Double signature** : un joueur propose un tampon, un collègue le contresigne (ou le conteste).
+- **Pause** : l'hôte peut mettre la partie en pause (bouton du bandeau ou touche `P`) ; chronomètre et téléphone s'arrêtent, le dossier est masqué pour tous.
 - **Téléphone** : de temps en temps, une question de culture géographique dont la réponse n'est pas dans l'atlas. Bonus de 5 points, aucune pénalité, aucune obligation.
 
 ### Raccourcis

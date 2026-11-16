@@ -70,6 +70,7 @@
             <div id="j-cred" class="cred-barre" role="meter" aria-label="Crédibilité" aria-valuemin="0" aria-valuemax="100"></div>
           </div>
           <p id="j-score" class="score">0 pts</p>
+          <button id="btn-pause" class="btn-mini" type="button" hidden>Pause</button>
           <button id="btn-son" class="btn-mini" type="button">Son actif</button>
         </div>
       </header>
@@ -103,6 +104,16 @@
           </div>
         </aside>
       </main>
+    </div>
+
+    <div id="pause" class="voile-pause" hidden role="dialog" aria-modal="true" aria-labelledby="pause-titre">
+      <div class="note-papier pause-carte">
+        <h2 id="pause-titre">Partie en pause</h2>
+        <p id="pause-par"></p>
+        <p class="discret">Le chronomètre et le téléphone sont arrêtés. Le dossier reste caché jusqu'à la reprise.</p>
+        <button id="btn-reprendre" class="btn-principal" type="button">Reprendre la partie</button>
+        <p id="pause-attente" class="discret">Seul l'hôte peut reprendre la partie.</p>
+      </div>
     </div>
 
     <div id="note" class="note" hidden role="dialog" aria-labelledby="note-titre">

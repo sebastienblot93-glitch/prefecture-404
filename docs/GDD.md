@@ -58,6 +58,7 @@ Conçu pour jouer **au bureau, sans se parler**. Le serveur (`server/`) est l'un
 | Répartition intelligente | Chacun reçoit au moins un onglet utile au dossier (quand c'est possible) ; « Communes » et « Départements » sont toujours chez deux joueurs différents | Vérifier une région exige forcément la coopération |
 | Épingles | Cliquer une ligne de son atlas l'épingle sur le dossier commun ; le texte est reconstruit par le serveur depuis la base | Communication silencieuse, et impossible d'épingler une information inventée |
 | Double signature | Un joueur **propose** un tampon ; un autre le **contresigne** (validé) ou le **conteste** (annulé) | Un dossier se valide à deux |
+| Pause | L'hôte seul met en pause et reprend ; temps, téléphone et actions gelés, dossier masqué | Une réunion surprise ne coûte pas la journée |
 | Téléphone bonus | Toutes les 30 à 50 s, une question de culture géographique (3 choix, réponse absente de l'atlas), 20 s pour répondre, n'importe quel joueur | +5 points ; aucune pénalité, aucune obligation |
 
 Les questions du téléphone viennent de `src/data/culture.js` : faits stables uniquement, sans chiffre discutable, listés dans la fiche de relecture.

@@ -104,7 +104,22 @@ export class Salon {
     const enExamen = () => { if (!p || p.etape !== 'examen') refuser('Pas de dossier en examen.'); };
     const dansEquipe = () => { if (!p?.equipe.includes(joueur.id)) refuser("Vous n'êtes pas dans l'équipe de cette partie."); };
 
+    // Partie en pause : tout est gelé, sauf la reprise
+    if (p?.pause && this.phase === 'jeu' && a?.type !== 'pause') refuser("La partie est en pause. Seul l'hôte peut la reprendre.");
+
     switch (a?.type) {
+      case 'pause': {
+        if (joueur.id !== this.hoteId) refuser("Seul l'hôte peut mettre la partie en pause.");
+        if (this.phase !== 'jeu' || !p) refuser('Aucune partie en cours.');
+        if (p.pause) {
+          p.pause = null;
+          p.dernierTic = t;
+          p.annonce = { texte: `${joueur.pseudo} a repris la partie.`, t, ton: 'neutre' };
+        } else {
+          p.pause = { par: joueur.pseudo };
+        }
+        break;
+      }
       case 'config': {
         if (!estHote) refuser("Seul l'hôte règle la partie.");
         if (this.phase === 'jeu') refuser('Partie en cours.');
@@ -236,7 +251,7 @@ export class Salon {
       signalements: new Map(), epingles: [], proposition: null, correction: null, resultats: [],
       repartition: null, hasardRepartition: creerHasard(`repartition-${graineSalon}`),
       appel: null, prochainAppel: 25000, appelsPoses: new Set(), appels: { bons: 0, faux: 0, ignores: 0 },
-      hasardAppels: creerHasard(`appels-${graineSalon}`), contestations: 0, annonce: null,
+      hasardAppels: creerHasard(`appels-${graineSalon}`), contestations: 0, annonce: null, pause: null,
     };
     if (cfg.mode === 'infini') this.partie.dossiers.push(genererDossier(cfg.hasard, cfg.contexte, 3, 1));
     this.partie.repartition = repartir(this.dossier(), equipe, this.partie.hasardRepartition);
@@ -287,6 +302,7 @@ export class Salon {
     this.phase = 'bilan';
     this.partie.etape = 'bilan';
     this.partie.raison = raison;
+    this.partie.pause = null;
     if (this.partie.appel) this.partie.appel = null;
   }
 
@@ -295,7 +311,7 @@ export class Salon {
     const p = this.partie;
     if (this.phase !== 'jeu' || !p) return false;
     const t = this.maintenant();
-    if (p.etape !== 'examen') { p.dernierTic = t; return false; }
+    if (p.pause || p.etape !== 'examen') { p.dernierTic = t; return false; }
     p.ecoule += Math.max(0, t - (p.dernierTic ?? t));
     p.dernierTic = t;
     if (p.duree && p.ecoule >= p.duree) { this.finir('retard'); this.toucher(); return true; }
@@ -336,6 +352,7 @@ export class Salon {
       index: p.index, total: p.mode === 'campagne' ? p.dossiers.length : null,
       score: p.score, credibilite: Math.max(0, p.credibilite),
       horloge: this.horloge(), tard: p.duree ? p.ecoule / p.duree > 0.8 : false,
+      pause: p.pause ?? null,
       annonce: p.annonce && this.maintenant() - p.annonce.t < 10000 ? p.annonce : null,
       mesOnglets: p.repartition?.[moi.id] ?? [],
       repartition: p.equipe.map((id) => ({

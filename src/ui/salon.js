@@ -170,12 +170,28 @@ function rendreJeu() {
     if (p.index > 0) sonPapier();
   }
 
+  rendrePause(p);
   rendreDossier(p);
   rendreTelephone(p);
   rendreEpingles(p);
   rendreSignature(p);
   rendreNote(p);
   sons(p);
+}
+
+function rendrePause(p) {
+  const bouton = $('#btn-pause');
+  bouton.hidden = !etat.hote;
+  bouton.textContent = p.pause ? 'Reprendre' : 'Pause';
+  bouton.setAttribute('aria-pressed', Boolean(p.pause));
+  const voile = $('#pause');
+  const etaitCache = voile.hidden;
+  voile.hidden = !p.pause;
+  if (!p.pause) return;
+  $('#pause-par').textContent = `Mise en pause par ${p.pause.par}.`;
+  $('#btn-reprendre').hidden = !etat.hote;
+  $('#pause-attente').hidden = etat.hote;
+  if (etaitCache) { $('#choix-region').hidden = true; if (etat.hote) $('#btn-reprendre').focus(); }
 }
 
 function rendreDossier(p) {
@@ -359,6 +375,9 @@ function init() {
   son.addEventListener('click', () => { basculerMuet(); majSon(); });
   majSon();
 
+  $('#btn-pause').addEventListener('click', () => agir('pause'));
+  $('#btn-reprendre').addEventListener('click', () => agir('pause'));
+
   $('#ecran-jeu').addEventListener('click', (e) => {
     const b = e.target.closest('[data-action]');
     if (!b || b.disabled) return;
@@ -381,6 +400,8 @@ function init() {
   document.addEventListener('keydown', (e) => {
     const p = etat?.partie;
     if (!p || e.target.matches('input, select')) return;
+    if (etat.phase === 'jeu' && etat.hote && (e.key === 'p' || e.key === 'P')) return agir('pause');
+    if (p.pause) return;
     if (e.key === 'Enter' && !$('#note').hidden && !e.target.closest('tr')) { e.preventDefault(); return $('#note-bouton').click(); }
     if (p.etape !== 'examen') return;
     if (e.key === 'Escape') { $('#choix-region').hidden = true; return; }

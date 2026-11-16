@@ -586,8 +586,17 @@ tr.epinglee td { background: var(--surligneur); }
 .tel-boutons .btn-principal { background: var(--papier); color: var(--encre); border-color: var(--papier); min-width: 5rem; }
 
 
+.note-papier h2 { font-family: var(--formulaire); margin: 0 0 .6rem; font-size: 1.4rem; }
+.pause-carte h2 { font-size: 1.8rem; }
 .aide-poste { background: #eef2ea; padding: .5rem .7rem; }
 .f-champ.anomalie-reelle { background: linear-gradient(transparent 55%, rgb(255 228 92 / .75) 55%); }
+
+.voile-pause {
+  position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 1rem;
+  background: rgb(20 34 27 / .82); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+}
+.pause-carte { width: min(460px, 100%); text-align: center; border-top-color: var(--surligneur); }
+#btn-pause[aria-pressed="true"] { background: var(--surligneur); color: var(--encre); border-color: var(--surligneur); }
 
 .connexion {
   position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%); margin: 0; z-index: 70;

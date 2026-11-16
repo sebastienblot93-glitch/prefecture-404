@@ -129,6 +129,26 @@ test('téléphone bonus : visible par tous, bonne réponse +5, raté ou ignoré 
   assert.equal(s.partie.score, 5);
 });
 
+test("pause : réservée à l'hôte, gèle le chronomètre, le téléphone et les actions", () => {
+  const { s, js, horloge } = partie(2);
+  assert.throws(() => s.agir(js[1], { type: 'pause' }), /hôte/);
+  horloge.t += 5000; s.tic();
+  const avant = s.partie.ecoule;
+  s.agir(js[0], { type: 'pause' });
+  assert.equal(s.vuePour(js[1].id).partie.pause.par, 'J1');
+  horloge.t += 120000; s.tic();
+  assert.equal(s.partie.ecoule, avant, 'le temps ne doit pas avancer');
+  assert.equal(s.partie.appel, null, 'le téléphone ne sonne pas en pause');
+  assert.throws(() => s.agir(js[1], { type: 'signaler', cible: 'd0' }), /pause/);
+  assert.throws(() => s.agir(js[0], { type: 'proposer', decision: 'ACCEPTER' }), /pause/);
+  assert.throws(() => s.agir(js[1], { type: 'pause' }), /hôte/);
+  s.agir(js[0], { type: 'pause' });
+  assert.equal(s.vuePour(js[1].id).partie.pause, null);
+  horloge.t += 1000; s.tic();
+  assert.equal(s.partie.ecoule, avant + 1000, 'le temps repart sans compter la pause');
+  s.agir(js[1], { type: 'signaler', cible: 'd0' });
+});
+
 test('banque de culture : 3 choix distincts, bonne réponse retrouvée, pas de répétition', () => {
   for (const q of CULTURE) assert.equal(new Set([q.bonne, ...q.faux]).size, 3, q.question);
   const h = creerHasard('quiz');
