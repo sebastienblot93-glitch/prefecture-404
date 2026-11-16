@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Préfecture 404</title>
+  <meta name="description" content="Simulation administrative absurde et enquête géographique : vérifiez les dossiers des communes françaises avant de tamponner.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect x=%274%27 y=%2716%27 width=%2756%27 height=%2732%27 rx=%274%27 fill=%27none%27 stroke=%27%23be2a31%27 stroke-width=%275%27/%3E%3Ctext x=%2732%27 y=%2742%27 font-family=%27Arial%27 font-weight=%27900%27 font-size=%2722%27 text-anchor=%27middle%27 fill=%27%23be2a31%27%3E404%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles/bureau.css">
+</head>
+<body>
+  <div id="avertissement-fichier" class="avertissement" hidden>
+    Le jeu doit être servi par un petit serveur web (les modules JavaScript ne se chargent pas depuis un fichier local).
+    Dans le dossier du projet, lancez <code>python3 -m http.server 8404</code> puis ouvrez <code>http://localhost:8404</code>.
+  </div>
+
+  <!-- ———————————————————— Accueil -->
+  <section id="ecran-accueil" class="ecran accueil">
+    <div class="chemise-titre">
+      <p class="ct-emetteur">Bureau national de vérification des territoires</p>
+      <h1 class="ct-titre"><span>Préfecture</span> <span class="ct-404">404</span></h1>
+      <p class="ct-pitch">Des communes françaises vous envoient leurs dossiers. Vérifiez départements, régions, fleuves, littoraux et montagnes, appliquez le règlement du jour, et tamponnez avant 17 h.</p>
+    </div>
+
+    <div class="accueil-grille">
+      <section class="volet">
+        <h2>Campagne</h2>
+        <ol id="liste-journees" class="liste-journees"></ol>
+      </section>
+
+      <section class="volet">
+        <h2>Mode infini</h2>
+        <p>Les dossiers arrivent sans fin, de plus en plus vite. Partagez la graine pour jouer la même série à plusieurs.</p>
+        <label class="champ-graine">Graine
+          <input id="graine" type="text" maxlength="12" placeholder="au hasard" autocomplete="off" spellcheck="false">
+        </label>
+        <button id="btn-infini" class="btn-principal">Ouvrir le guichet</button>
+        <p id="record-infini" class="discret"></p>
+      </section>
+
+      <section class="volet">
+        <h2>Joueurs</h2>
+        <fieldset class="choix-joueurs">
+          <legend class="sr">Nombre de joueurs</legend>
+          <label><input type="radio" name="joueurs" value="1" checked> Seul au guichet</label>
+          <label><input type="radio" name="joueurs" value="2"> À deux : agent et géographe</label>
+          <label><input type="radio" name="joueurs" value="3"> À trois : avec un inspecteur</label>
+        </fieldset>
+        <div id="coop-details" class="coop-details" hidden>
+          <p>L'agent joue sur cet écran, sans atlas. Chaque coéquipier ouvre sa page sur son propre appareil, et vous parlez à voix haute (ou en visio).</p>
+          <label>Partie jouée
+            <select id="coop-jour">
+              <option value="1">Semaine 1</option>
+              <option value="2">Semaine 2</option>
+              <option value="3">Semaine 3</option>
+              <option value="infini">Mode infini (avec la graine ci-contre)</option>
+            </select>
+          </label>
+          <p><strong>Géographe :</strong> <a id="coop-geo" target="_blank" rel="noopener"></a></p>
+          <p id="coop-insp-ligne"><strong>Inspecteur :</strong> <a id="coop-insp" target="_blank" rel="noopener"></a></p>
+        </div>
+      </section>
+
+      <section class="volet volet-carriere">
+        <h2>Carrière</h2>
+        <p class="grade" id="grade"></p>
+        <p id="grade-suite" class="discret"></p>
+      </section>
+    </div>
+  </section>
+
+  <!-- ———————————————————— Bureau -->
+  <section id="ecran-bureau" class="ecran" hidden>
+    <div id="bureau" class="bureau" data-joueurs="1">
+      <header class="bandeau">
+        <div class="bd-gauche">
+          <p id="b-guichet" class="bd-guichet"></p>
+          <p id="b-journee" class="bd-journee"></p>
+        </div>
+        <p id="horloge" class="horloge" aria-live="off">09 h 00</p>
+        <div class="bd-droite">
+          <p id="file" class="file" hidden></p>
+          <div class="cred">
+            <span class="cred-label">Crédibilité</span>
+            <div id="credibilite" class="cred-barre" role="meter" aria-label="Crédibilité" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"></div>
+          </div>
+          <p id="score" class="score">0 pts</p>
+          <button id="btn-son" class="btn-mini" type="button">Son actif</button>
+          <button id="btn-quitter" class="btn-mini" type="button">Quitter</button>
+        </div>
+      </header>
+
+      <main class="plan">
+        <aside class="col-regl">
+          <div id="reglement" class="memo"></div>
+          <p class="placard placard-regl">Le règlement est entre les mains de l'inspecteur.</p>
+        </aside>
+
+        <div class="col-dossier">
+          <div id="dossier" class="dossier"></div>
+          <div class="porte-tampons" role="group" aria-label="Tampons">
+            <button class="tampon" data-decision="ACCEPTER" type="button"><span class="t-manche"></span><span class="t-semelle">Accepter</span><kbd>1</kbd></button>
+            <button class="tampon" data-decision="RECTIFIER" type="button"><span class="t-manche"></span><span class="t-semelle">Rectifier</span><kbd>2</kbd></button>
+            <button class="tampon" data-decision="TRANSFERER" type="button"><span class="t-manche"></span><span class="t-semelle">Transférer</span><kbd>3</kbd></button>
+            <button class="tampon" data-decision="REFUSER" type="button"><span class="t-manche"></span><span class="t-semelle">Refuser</span><kbd>4</kbd></button>
+            <div id="choix-region" class="choix-region" hidden></div>
+          </div>
+        </div>
+
+        <aside class="col-atlas">
+          <div class="atlas-boite">
+            <h2 class="atlas-titre">Atlas officiel</h2>
+            <div id="atlas" class="atlas"></div>
+          </div>
+          <p class="placard placard-atlas">L'atlas est entre les mains du géographe. Lisez-lui les déclarations.</p>
+        </aside>
+      </main>
+    </div>
+
+    <div id="note" class="note" hidden role="dialog" aria-modal="true" aria-labelledby="note-titre">
+      <div class="note-papier">
+        <h2 id="note-titre"></h2>
+        <div id="note-mascotte" class="note-mascotte" hidden>
+          <svg viewBox="0 0 64 40" aria-hidden="true" class="agrafe">
+            <rect x="4" y="26" width="56" height="10" rx="3" fill="#3b4250"/>
+            <path d="M6 24 Q8 10 30 9 L58 12 Q61 13 60 17 L58 24 Z" fill="#b8343a"/>
+            <circle cx="40" cy="16" r="4.2" fill="#fff"/><circle cx="50" cy="16.5" r="4.2" fill="#fff"/>
+            <circle cx="41" cy="16.8" r="2" fill="#1d2230"/><circle cx="51" cy="17.2" r="2" fill="#1d2230"/>
+            <path d="M38 10.5 l6 1.5 M48 11.5 l5 0" stroke="#1d2230" stroke-width="1.4" stroke-linecap="round"/>
+          </svg>
+          <p class="note-bulle"><span class="sr">Agrafe, la mascotte : </span><span id="note-bulle"></span></p>
+        </div>
+        <div id="note-corps" class="note-corps"></div>
+        <button id="note-bouton" class="btn-principal" type="button"></button>
+      </div>
+    </div>
+    <p id="flash" class="flash" hidden role="status"></p>
+  </section>
+
+  <!-- ———————————————————— Bilan -->
+  <section id="ecran-bilan" class="ecran" hidden>
+    <div id="bilan" class="bilan"></div>
+  </section>
+
+  <script>
+    setTimeout(function () {
+      if (!window.__p404) document.getElementById('avertissement-fichier').hidden = false;
+    }, 1500);
+  </script>
+  <script type="module" src="src/ui/app.js"></script>
+</body>
+</html>

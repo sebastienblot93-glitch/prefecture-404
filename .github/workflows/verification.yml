@@ -1,0 +1,29 @@
+name: Vérification
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '17 6 * * 1'   # chaque lundi : le Code officiel géographique évolue (fusions de communes)
+  workflow_dispatch:
+
+jobs:
+  tests:
+    name: Cohérence interne (moteur, campagne, générateur)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm test
+
+  referentiel-officiel:
+    name: Référentiel administratif vs geo.api.gouv.fr
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node tools/verifier-officiel.mjs

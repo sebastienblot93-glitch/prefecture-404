@@ -1,0 +1,161 @@
+// Campagne : trois journées écrites à la main (8 dossiers chacune).
+// Chaque dossier porte un verdict `attendu` écrit par l'auteur. Les tests
+// (tests/campagne.test.mjs) vérifient que le moteur arrive au même verdict :
+// une erreur d'écriture OU une erreur de données casse le build.
+import { COMMUNE_PAR_NOM } from '../data/communes.js';
+import { SECTIONS } from '../moteur/regles.js';
+
+const ORDRE = ['dep', 'region', 'littoral', 'mer', 'fleuve', 'massif', 'prefecture'];
+
+// d({ commune, objet, decl: { dep, region, ... }, ... })
+function d(id, spec) {
+  const c = COMMUNE_PAR_NOM[spec.commune];
+  if (!c) throw new Error(`Commune absente de la base : ${spec.commune}`);
+  const declarations = ORDRE.filter((k) => k in spec.decl).map((k) => ({ type: k, valeur: spec.decl[k] }));
+  return {
+    id,
+    insee: c.insee,
+    demandeur: spec.demandeur,
+    mot: spec.mot,
+    objet: spec.objet,
+    declarations,
+    montant: spec.montant ?? null,
+    pieces: spec.pieces ?? [],
+    registre: { insee: spec.registre ?? c.insee },
+    attendu: spec.attendu,
+    destination: spec.destination,
+  };
+}
+
+export const JOURNEES = [
+  {
+    id: 1,
+    titre: 'Semaine 1 — Bienvenue au bureau',
+    intro: "Premier jour au Guichet 404. Vérifiez le département et la région de chaque commune. Les dossiers des autres régions se transfèrent.",
+    section: 'OUEST',
+    niveau: 1,
+    duree: 360,
+    decrets: [],
+    dossiers: [
+      d('S1-1', { commune: 'Rennes', objet: { type: 'attestation' }, decl: { dep: '35', region: '53' },
+        demandeur: 'Mme Germaine Lavergne, secrétaire de mairie',
+        mot: 'Un dossier tout simple pour commencer, promis.', attendu: 'ACCEPTER' }),
+      d('S1-2', { commune: 'Saint-Malo', objet: { type: 'aide_littoral' }, montant: 25000,
+        decl: { dep: '35', region: '53', littoral: true },
+        demandeur: 'Mme Ginette Récépissé, élue aux mouettes et goélands',
+        mot: 'Nos remparts prennent les embruns de plein fouet.', attendu: 'ACCEPTER' }),
+      d('S1-3', { commune: 'Nantes', objet: { type: 'attestation' }, decl: { dep: '44', region: '53' },
+        demandeur: 'M. Lucien Paraphe, délégué au jumelage imaginaire',
+        mot: 'Nous sommes bretons de cœur, et donc de région.', attendu: 'RECTIFIER' }),
+      d('S1-4', { commune: 'Marseille', objet: { type: 'attestation' }, decl: { dep: '13', region: '93' },
+        demandeur: 'M. Marcel Contresigné, président de la société de pétanque',
+        mot: "On nous a dit que c'était plus rapide chez vous.", attendu: 'TRANSFERER', destination: '93' }),
+      d('S1-5', { commune: 'Le Mans', objet: { type: 'aide_littoral' }, montant: 40000,
+        decl: { dep: '72', region: '52', littoral: true },
+        demandeur: 'M. Gérard Formulaire, conseiller municipal délégué aux ronds-points',
+        mot: 'La Sarthe déborde parfois, ça compte comme la mer ?', attendu: 'REFUSER' }),
+      d('S1-6', { commune: 'Caen', objet: { type: 'attestation' }, decl: { dep: '50', region: '28' },
+        demandeur: "Mme Chantal Duplicata, responsable de l'état civil",
+        mot: 'Nous sommes en Normandie, près de la Manche. Enfin, de la mer.', attendu: 'RECTIFIER' }),
+      d('S1-7', { commune: 'Biarritz', objet: { type: 'aide_littoral' }, montant: 60000,
+        decl: { dep: '64', region: '76', littoral: true },
+        demandeur: 'M. Roger Cachet, garde champêtre honoraire',
+        mot: "Les surfeurs ont besoin d'un nouveau parking à planches.", attendu: 'RECTIFIER' }),
+      d('S1-8', { commune: 'Brest', objet: { type: 'rattachement', dep: '13' }, decl: { dep: '29', region: '53' },
+        demandeur: 'M. Bernard Visa, maire adjoint chargé des réclamations',
+        mot: 'Le conseil municipal souhaite davantage de soleil. Les Bouches-du-Rhône en ont.', attendu: 'REFUSER' }),
+    ],
+  },
+  {
+    id: 2,
+    titre: 'Semaine 2 — Les frontières se compliquent',
+    intro: "Mutation en Section Sud-Est. Fleuves, montagnes, littoraux : vérifiez chaque caractéristique. Méfiez-vous des erreurs multiples.",
+    section: 'SUD_EST',
+    niveau: 2,
+    duree: 420,
+    decrets: [],
+    dossiers: [
+      d('S2-1', { commune: 'Grenoble', objet: { type: 'aide_littoral' }, montant: 80000,
+        decl: { dep: '38', region: '84', littoral: true },
+        demandeur: "Mme Simone Agrafe, cheffe du service « Cases à cocher »",
+        mot: "Grenoble déclare avoir une façade maritime. Elle est très petite, mais très sincère.", attendu: 'REFUSER' }),
+      d('S2-2', { commune: 'Chamonix-Mont-Blanc', objet: { type: 'montagne', massif: 'Alpes' }, montant: 35000,
+        decl: { dep: '74', region: '84', massif: 'Alpes' },
+        demandeur: 'M. Roger Cachet, garde champêtre honoraire',
+        mot: 'Le chasse-neige municipal a 47 ans et des opinions.', attendu: 'ACCEPTER' }),
+      d('S2-3', { commune: 'Toulouse', objet: { type: 'crue', fleuve: 'Loire' }, montant: 90000,
+        decl: { dep: '31', region: '76', fleuve: 'Loire', prefecture: true },
+        demandeur: 'M. Jean-Michel Tampon, adjoint aux festivités',
+        mot: 'La Loire a encore débordé sur le Capitole.', attendu: 'REFUSER' }),
+      d('S2-4', { commune: 'Nice', objet: { type: 'aide_littoral' }, montant: 50000,
+        decl: { dep: '83', region: '93', littoral: true, mer: 'Atlantique' },
+        demandeur: 'Mme Ginette Récépissé, élue aux mouettes et goélands',
+        mot: 'La promenade des Anglais réclame des Anglais. Et du sable.', attendu: 'RECTIFIER' }),
+      d('S2-5', { commune: 'Ajaccio', objet: { type: 'attestation' }, decl: { dep: '2B', region: '94', prefecture: true },
+        demandeur: 'Mme Huguette Trombone, archiviste bénévole',
+        mot: 'A ou B, on ne sait jamais trop.', attendu: 'RECTIFIER' }),
+      d('S2-6', { commune: 'Montpellier', objet: { type: 'aide_littoral' }, montant: 120000,
+        decl: { dep: '34', region: '76', littoral: true, mer: 'Méditerranée' },
+        demandeur: 'M. Gérard Formulaire, conseiller municipal délégué aux ronds-points',
+        mot: "On voit la mer depuis le dernier étage de l'Hôtel de Ville. Par beau temps.", attendu: 'REFUSER' }),
+      d('S2-7', { commune: 'Avignon', objet: { type: 'crue', fleuve: 'Rhône' }, montant: 70000,
+        decl: { dep: '84', region: '93', fleuve: 'Rhône', prefecture: true },
+        demandeur: 'Mme Odile Paperasse, présidente du comité des fêtes',
+        mot: 'Le pont s\'arrête au milieu, mais le Rhône, lui, continue.', attendu: 'ACCEPTER' }),
+      d('S2-8', { commune: 'Bordeaux', objet: { type: 'crue', fleuve: 'Garonne' }, montant: 65000,
+        decl: { dep: '33', region: '76', fleuve: 'Garonne' },
+        demandeur: 'M. Lucien Paraphe, délégué au jumelage imaginaire',
+        mot: 'Nous sommes du Sud, donc de la Section Sud-Est. Logique.', attendu: 'TRANSFERER', destination: '75' }),
+    ],
+  },
+  {
+    id: 3,
+    titre: 'Semaine 3 — La réforme administrative',
+    intro: "Section Nord-Est. De nouveaux décrets sont entrés en vigueur ce matin. Un dossier géographiquement parfait peut être administrativement irrecevable.",
+    section: 'NORD_EST',
+    niveau: 3,
+    duree: 480,
+    decrets: [
+      { type: 'seuil_piece', seuil: 50000, piece: 'attestation_maire' },
+      { type: 'piece_objet', objet: 'crue', piece: 'plan_cadastral' },
+      { type: 'objet_suspendu', objet: 'prefecture' },
+    ],
+    dossiers: [
+      d('S3-1', { commune: 'Strasbourg', objet: { type: 'crue', fleuve: 'Rhin' }, montant: 30000,
+        pieces: ['plan_cadastral'], decl: { dep: '67', region: '44', fleuve: 'Rhin' },
+        demandeur: 'M. Jean-Michel Tampon, adjoint aux festivités',
+        mot: 'Le Rhin est large, nos sacs de sable aussi.', attendu: 'ACCEPTER' }),
+      d('S3-2', { commune: 'Paris', objet: { type: 'crue', fleuve: 'Seine' }, montant: 80000,
+        pieces: ['plan_cadastral', 'photo_facade'], decl: { dep: '75', region: '11', fleuve: 'Seine', prefecture: true },
+        demandeur: "Mme Chantal Duplicata, responsable de l'état civil",
+        mot: 'Le zouave du pont de l\'Alma a encore les pieds mouillés.', attendu: 'REFUSER' }),
+      d('S3-3', { commune: 'Reims', objet: { type: 'prefecture' }, montant: 45000,
+        decl: { dep: '51', region: '44', prefecture: true },
+        demandeur: 'M. Marcel Contresigné, président de la société de pétanque',
+        mot: 'Une ville où l\'on sacrait les rois mérite bien une préfecture.', attendu: 'REFUSER' }),
+      d('S3-4', { commune: 'Dunkerque', objet: { type: 'aide_littoral' }, montant: 120000,
+        pieces: ['attestation_maire'], decl: { dep: '59', region: '32', littoral: true, mer: 'Mer du Nord' },
+        demandeur: 'Mme Ginette Récépissé, élue aux mouettes et goélands',
+        mot: 'Le carnaval a laissé des confettis jusque dans la mer.', attendu: 'ACCEPTER' }),
+      d('S3-5', { commune: 'Besançon', objet: { type: 'crue', fleuve: 'Doubs' }, montant: 20000,
+        pieces: ['plan_cadastral'], registre: '39056', decl: { dep: '25', region: '27', fleuve: 'Doubs' },
+        demandeur: 'Mme Huguette Trombone, archiviste bénévole',
+        mot: "L'extrait a été photocopié chez nos voisins du Jura, c'est pareil.", attendu: 'REFUSER' }),
+      d('S3-6', { commune: 'Troyes', objet: { type: 'crue', fleuve: 'Seine' }, montant: 30000,
+        pieces: ['plan_cadastral'], decl: { dep: '51', region: '44', fleuve: 'Seine' },
+        demandeur: 'M. Roger Cachet, garde champêtre honoraire',
+        mot: 'Champagne, Marne, Aube… c\'est un peu la même famille.', attendu: 'RECTIFIER' }),
+      d('S3-7', { commune: 'Lille', objet: { type: 'attestation' }, decl: { dep: '59', region: '44', prefecture: true },
+        demandeur: 'M. Bernard Visa, maire adjoint chargé des réclamations',
+        mot: 'Le Grand Est, c\'est grand. Ça doit bien aller jusqu\'ici.', attendu: 'RECTIFIER' }),
+      d('S3-8', { commune: 'Rouen', objet: { type: 'crue', fleuve: 'Seine' }, montant: 40000,
+        pieces: ['plan_cadastral'], decl: { dep: '76', region: '28', fleuve: 'Seine' },
+        demandeur: 'Mme Odile Paperasse, présidente du comité des fêtes',
+        mot: 'La Seine passe par Paris, Paris est chez vous, donc nous aussi.', attendu: 'TRANSFERER', destination: '28' }),
+    ],
+  },
+];
+
+export function contexteDe(journee) {
+  return { regions: SECTIONS[journee.section].regions, decrets: journee.decrets, section: journee.section };
+}

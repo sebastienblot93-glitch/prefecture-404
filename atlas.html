@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Préfecture 404 — Atlas du géographe</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect x=%274%27 y=%2716%27 width=%2756%27 height=%2732%27 rx=%274%27 fill=%27none%27 stroke=%27%23be2a31%27 stroke-width=%275%27/%3E%3Ctext x=%2732%27 y=%2742%27 font-family=%27Arial%27 font-weight=%27900%27 font-size=%2722%27 text-anchor=%27middle%27 fill=%27%23be2a31%27%3E404%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles/bureau.css">
+</head>
+<body class="page-role">
+  <main class="role">
+    <header class="role-entete">
+      <p class="ct-emetteur">Bureau national de vérification des territoires</p>
+      <h1>Atlas officiel du géographe</h1>
+      <p>Vous ne voyez pas les dossiers. L'agent vous lit les déclarations : vérifiez-les en croisant les tables, puis dites-lui ce qui est faux.</p>
+    </header>
+    <div class="atlas-boite atlas-plein"><div id="atlas" class="atlas"></div></div>
+  </main>
+  <script type="module">
+    import { monterAtlas } from './src/ui/atlas.js';
+    monterAtlas(document.getElementById('atlas'));
+  </script>
+</body>
+</html>
