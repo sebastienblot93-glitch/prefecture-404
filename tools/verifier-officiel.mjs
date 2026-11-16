@@ -13,19 +13,20 @@ const norm = (s) => String(s ?? '').replace(/[’‘]/g, "'").normalize('NFC').t
 const ecarts = [];
 const ecart = (quoi, attendu, officiel) => ecarts.push({ quoi, attendu, officiel });
 
-async function lire(chemin, essais = 3) {
+async function lire(chemin, essais = 5, delai = 20000) {
   for (let i = 1; ; i++) {
     try {
       const r = await fetch(API + chemin, {
         headers: { accept: 'application/json', 'user-agent': 'prefecture-404-verification' },
-        signal: AbortSignal.timeout(15000),
+        signal: AbortSignal.timeout(delai),
       });
       if (r.status === 404) return null;
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       return await r.json();
     } catch (e) {
       if (i >= essais) throw new Error(`${chemin} : ${e.message}`);
-      await new Promise((ok) => setTimeout(ok, 800 * i));
+      console.log(`  nouvel essai (${e.message})…`);
+      await new Promise((ok) => setTimeout(ok, 2000 * i));
     }
   }
 }
@@ -51,9 +52,12 @@ for (const [code, d] of Object.entries(DEPARTEMENTS)) {
 }
 for (const code of Object.keys(offD)) if (!DEPARTEMENTS[code]) ecart(`Département ${code}`, 'absent du jeu', offD[code].nom);
 
-for (const [i, c] of COMMUNES.entries()) {
-  if (i % 20 === 0) console.log(`  communes ${i + 1} à ${Math.min(i + 20, COMMUNES.length)}…`);
-  const o = await lire(`/communes/${c.insee}?fields=nom,codeDepartement,codeRegion`);
+// Une seule requête : la liste officielle complète des communes (~35 000).
+const toutes = await lire('/communes?fields=nom,code,codeDepartement,codeRegion&format=json', 5, 90000);
+console.log(`  ${toutes.length} communes officielles reçues`);
+const offC = Object.fromEntries(toutes.map((c) => [c.code, c]));
+for (const c of COMMUNES) {
+  const o = offC[c.insee];
   if (!o) { ecart(`Commune ${c.insee}`, c.nom, 'code INSEE inexistant'); continue; }
   if (norm(o.nom) !== norm(c.nom)) ecart(`Commune ${c.insee} (nom)`, c.nom, o.nom);
   if (o.codeDepartement !== c.dep) ecart(`Commune ${c.nom} (département)`, c.dep, o.codeDepartement);
