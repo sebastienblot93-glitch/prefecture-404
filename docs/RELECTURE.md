@@ -122,6 +122,46 @@ Même principe : aucune région concernée ne doit manquer.
 - [ ] **Jura** : Bourgogne-Franche-Comté, Auvergne-Rhône-Alpes
 - [ ] **Massif central** : Auvergne-Rhône-Alpes, Occitanie, Nouvelle-Aquitaine, Bourgogne-Franche-Comté
 
+## Questions bonus du téléphone (src/data/culture.js)
+
+Vérifier la bonne réponse ET que les deux autres choix sont bien faux.
+
+- [ ] Quel est le plus long fleuve de France ? → **La Loire** (faux : La Seine, Le Rhône)
+- [ ] Quel est le point culminant des Alpes et de la France ? → **Le mont Blanc** (faux : La Barre des Écrins, La Meije)
+- [ ] Dans quel pays le Rhône prend-il sa source ? → **En Suisse** (faux : En France, En Italie)
+- [ ] Dans quel pays la Garonne prend-elle sa source ? → **En Espagne** (faux : En France, En Andorre)
+- [ ] Dans quelle mer se jette la Seine ? → **La Manche** (faux : La mer du Nord, L'océan Atlantique)
+- [ ] Quel delta forme la Camargue ? → **Le delta du Rhône** (faux : Le delta de la Loire, Le delta de la Garonne)
+- [ ] Quels fleuves se rejoignent pour former l'estuaire de la Gironde ? → **La Garonne et la Dordogne** (faux : La Garonne et le Lot, La Dordogne et la Charente)
+- [ ] Quelle est la plus grande île de France métropolitaine ? → **La Corse** (faux : L'île d'Oléron, Belle-Île-en-Mer)
+- [ ] Dans quel département se trouve l'île d'Oléron ? → **Charente-Maritime** (faux : Vendée, Gironde)
+- [ ] Dans quel département se trouve Belle-Île-en-Mer ? → **Morbihan** (faux : Finistère, Loire-Atlantique)
+- [ ] Dans quel département se trouve le Mont-Saint-Michel ? → **Manche** (faux : Ille-et-Vilaine, Calvados)
+- [ ] Dans quel département se trouve la dune du Pilat ? → **Gironde** (faux : Landes, Charente-Maritime)
+- [ ] Dans quel département se trouvent les falaises d'Étretat ? → **Seine-Maritime** (faux : Calvados, Somme)
+- [ ] Dans quel département se trouve le mont Ventoux ? → **Vaucluse** (faux : Drôme, Alpes-de-Haute-Provence)
+- [ ] Quel est le point culminant du Massif central ? → **Le puy de Sancy** (faux : Le puy de Dôme, Le plomb du Cantal)
+- [ ] Quel est le point culminant des Vosges ? → **Le Grand Ballon** (faux : Le Hohneck, Le ballon d'Alsace)
+- [ ] Quel est le point culminant des Pyrénées françaises ? → **Le Vignemale** (faux : Le pic du Midi de Bigorre, Le Canigou)
+- [ ] Quelle rivière franchit le viaduc de Millau ? → **Le Tarn** (faux : L'Aveyron, Le Lot)
+- [ ] Quelle rivière franchit le pont du Gard ? → **Le Gardon** (faux : Le Rhône, L'Hérault)
+- [ ] Quelles villes relie le canal du Midi ? → **Toulouse et l'étang de Thau** (faux : Bordeaux et Toulouse, Lyon et Marseille)
+- [ ] Quel marais est surnommé « la Venise verte » ? → **Le Marais poitevin** (faux : La Brière, Le marais Vernier)
+- [ ] Avec combien de pays la France métropolitaine a-t-elle une frontière terrestre ? → **8** (faux : 6, 10)
+- [ ] Quel pays partage la plus longue frontière terrestre avec la France ? → **Le Brésil** (faux : L'Espagne, La Belgique)
+- [ ] Combien de régions compte la France métropolitaine depuis 2016 ? → **13** (faux : 18, 22)
+- [ ] Quelle est la préfecture de la Guadeloupe ? → **Basse-Terre** (faux : Pointe-à-Pitre, Le Gosier)
+- [ ] Quelle est la préfecture de La Réunion ? → **Saint-Denis** (faux : Saint-Pierre, Le Port)
+- [ ] Quelle est la plus vaste commune de France ? → **Maripasoula (Guyane)** (faux : Arles, Paris)
+- [ ] Quel est le département le plus peuplé de France ? → **Le Nord** (faux : Paris, Les Bouches-du-Rhône)
+- [ ] Quel lac est partagé entre la France et la Suisse ? → **Le lac Léman** (faux : Le lac d'Annecy, Le lac du Bourget)
+- [ ] Quel est le plus grand lac naturel entièrement français ? → **Le lac du Bourget** (faux : Le lac d'Annecy, Le lac de Serre-Ponçon)
+- [ ] Dans quel massif se trouve le cirque de Gavarnie ? → **Les Pyrénées** (faux : Les Alpes, Le Massif central)
+- [ ] Quelle rivière creuse les gorges du Verdon ? → **Le Verdon** (faux : La Durance, Le Var)
+- [ ] Quelle île bretonne marque l'extrémité ouest de la France métropolitaine ? → **Ouessant** (faux : Bréhat, Groix)
+- [ ] Quel fleuve forme une partie de la frontière avec l'Allemagne ? → **Le Rhin** (faux : La Moselle, La Meuse)
+- [ ] Depuis quelle année Mayotte est-elle un département français ? → **2011** (faux : 1976, 1999)
+
 ## Pistes de dossiers « très difficiles » (en zone grise, à vérifier avant usage)
 
 - Arles touche-t-elle la Méditerranée (Camargue, plage de Piémanson) ? Si oui : `littoral: true, mer: 'Méditerranée'` → dossier piège « Arles demande le Fonds littoral » = ACCEPTER.

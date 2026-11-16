@@ -40,25 +40,17 @@
         <label class="champ-ligne" id="at-graine-ligne">Graine
           <input id="at-graine" type="text" maxlength="10" placeholder="au hasard" spellcheck="false">
         </label>
-        <label class="champ-ligne">Rotation des postes
-          <select id="at-rotation">
-            <option value="1">À chaque dossier</option>
-            <option value="2">Tous les 2 dossiers</option>
-            <option value="3">Tous les 3 dossiers</option>
-            <option value="4">Tous les 4 dossiers</option>
-            <option value="0">Jamais</option>
-          </select>
-        </label>
         <p id="at-hote-info" class="discret"></p>
         <button id="at-lancer" class="btn-principal" type="button">Lancer la partie</button>
         <p id="at-erreur" class="erreur" role="alert" hidden></p>
-        <h2>Les postes</h2>
-        <dl class="postes">
-          <dt>Agent de guichet</dt><dd>Voit la commune, l'objet et sa condition. Tient les quatre tampons.</dd>
-          <dt>Géographe</dt><dd>Voit les déclarations, sans savoir de quelle commune il s'agit. Seul à avoir l'atlas. Annote les lignes fausses et répond au téléphone.</dd>
-          <dt>Inspecteur <span class="discret">(à 3)</span></dt><dd>Seul à connaître le règlement et les décrets. Contrôle montant, pièces et registre. Peut faire opposition à un tampon pendant 4 secondes.</dd>
-        </dl>
-        <p class="discret">À deux, le guichet reprend le travail de l'inspecteur, sans droit d'opposition.</p>
+        <h2>Comment on joue</h2>
+        <ul class="regles-coop">
+          <li>Tout le monde voit le même dossier, et chaque annotation apparaît en direct chez les autres.</li>
+          <li>L'atlas est coupé : chacun n'a que quelques onglets, et la répartition change à chaque dossier.</li>
+          <li>Cliquez une ligne de votre atlas pour l'<strong>épingler</strong> sur le dossier commun : vos collègues la lisent sans que vous ayez à parler.</li>
+          <li>Un tampon se pose à deux : l'un le <strong>propose</strong>, un collègue le <strong>contresigne</strong> (ou le conteste).</li>
+          <li>Le téléphone sonne parfois : une question de culture générale, en bonus. Aucune obligation de décrocher.</li>
+        </ul>
       </div>
     </div>
   </section>
@@ -69,7 +61,7 @@
       <header class="bandeau">
         <div class="bd-gauche">
           <p class="bd-guichet">Salon <strong id="j-code"></strong>, <span id="j-section"></span></p>
-          <p class="bd-journee"><span id="j-poste" class="badge-poste"></span> <span id="j-titre"></span></p>
+          <p class="bd-journee" id="j-titre"></p>
         </div>
         <p id="j-horloge" class="horloge">09 h 00</p>
         <div class="bd-droite">
@@ -83,11 +75,42 @@
       </header>
       <p id="j-annonce" class="annonce" role="status" hidden></p>
       <div id="j-equipe" class="equipe"></div>
-      <main id="j-plan" class="plan plan-en-ligne"></main>
-      <aside id="j-atlas-hote" class="atlas-boite atlas-en-ligne" hidden>
-        <h2 class="atlas-titre">Atlas officiel</h2>
-        <div id="atlas" class="atlas"></div>
-      </aside>
+
+      <main class="plan">
+        <aside class="col-regl"><div id="j-regl" class="memo"></div></aside>
+
+        <div class="col-dossier">
+          <div id="j-tel"></div>
+          <div id="j-dossier" class="dossier"></div>
+          <section class="liege" aria-label="Épingles de l'équipe">
+            <h2 class="liege-titre">Épingles <span id="j-nb-epingles" class="discret"></span></h2>
+            <ul id="j-epingles" class="epingles"></ul>
+          </section>
+          <div id="j-signature" class="signature"></div>
+          <div class="porte-tampons" role="group" aria-label="Proposer un tampon">
+            <button class="tampon" data-action="proposer" data-decision="ACCEPTER" type="button"><span class="t-manche"></span><span class="t-semelle">Accepter</span><kbd>1</kbd></button>
+            <button class="tampon" data-action="proposer" data-decision="RECTIFIER" type="button"><span class="t-manche"></span><span class="t-semelle">Rectifier</span><kbd>2</kbd></button>
+            <button class="tampon" data-action="proposer" data-decision="TRANSFERER" type="button"><span class="t-manche"></span><span class="t-semelle">Transférer</span><kbd>3</kbd></button>
+            <button class="tampon" data-action="proposer" data-decision="REFUSER" type="button"><span class="t-manche"></span><span class="t-semelle">Refuser</span><kbd>4</kbd></button>
+            <div id="choix-region" class="choix-region" hidden></div>
+          </div>
+        </div>
+
+        <aside class="col-atlas">
+          <div class="atlas-boite">
+            <h2 class="atlas-titre">Votre atlas <span id="j-mes-onglets" class="discret"></span></h2>
+            <div id="atlas" class="atlas"></div>
+          </div>
+        </aside>
+      </main>
+    </div>
+
+    <div id="note" class="note" hidden role="dialog" aria-labelledby="note-titre">
+      <div class="note-papier">
+        <h2 id="note-titre"></h2>
+        <div id="note-corps" class="note-corps"></div>
+        <button id="note-bouton" class="btn-principal" type="button"></button>
+      </div>
     </div>
   </section>
 

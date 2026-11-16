@@ -1,6 +1,11 @@
 // Logique d'un salon de jeu en ligne (sans réseau : testable directement).
-// Le serveur est l'unique arbitre : il détient les dossiers, applique le moteur
-// et n'envoie à chaque joueur QUE ce que son poste lui permet de voir.
+//
+// Principe « bureau partagé » : tous les joueurs voient le même dossier et les
+// mêmes annotations en direct. Ce qui les distingue, c'est l'ATLAS : ses six
+// onglets sont répartis entre les joueurs, et la répartition change à chaque
+// dossier. On se transmet les informations en ÉPINGLANT des lignes d'atlas sur
+// le dossier commun (pas besoin de parler). Un tampon n'est valide qu'avec une
+// DOUBLE SIGNATURE : un joueur le propose, un autre le contresigne.
 import { randomUUID } from 'node:crypto';
 import { COMMUNE_PAR_INSEE } from '../src/data/communes.js';
 import { REGIONS } from '../src/data/territoires.js';
@@ -8,22 +13,41 @@ import { libelleDeclaration } from '../src/moteur/verite.js';
 import { OBJETS, PIECES, SECTIONS, LIBELLE_DECISION, DECISIONS, decider, noter } from '../src/moteur/regles.js';
 import { creerHasard } from '../src/moteur/hasard.js';
 import { genererDossier } from '../src/moteur/generateur.js';
-import { genererAppel } from '../src/moteur/telephone.js';
+import { genererAppel, BONUS_APPEL } from '../src/moteur/telephone.js';
 import { conseilErreur } from '../src/moteur/pedagogie.js';
+import { CLES_ONGLETS, ONGLETS, ongletsUtiles, texteLigne } from '../src/moteur/atlas-donnees.js';
 import { JOURNEES, contexteDe } from '../src/campagne/journees.js';
 import { contexteInfini, nouvelleGraine } from '../src/campagne/infini.js';
 
-export const POSTES = {
-  2: ['guichet', 'geographe'],
-  3: ['guichet', 'geographe', 'inspecteur'],
-};
-export const NOM_POSTE = { guichet: 'Agent de guichet', geographe: 'Géographe', inspecteur: 'Inspecteur' };
-const DELAI_OPPOSITION = 4000;   // ms pendant lesquelles l'inspecteur peut bloquer un tampon
-const DUREE_APPEL = 15000;       // ms pour répondre au téléphone (temps de jeu)
 const MAX_JOUEURS = 3;
+const MAX_EPINGLES = 12;
+const DUREE_APPEL = 20000;  // ms de jeu pour décrocher
+export const COULEURS = ['bleu', 'vert', 'violet'];
 
 export class ErreurSalon extends Error {}
 const refuser = (m) => { throw new ErreurSalon(m); };
+
+// Répartit les onglets : autant de joueurs que possible reçoivent un onglet utile
+// au dossier (tous, s'il y a assez d'onglets utiles), et « Communes » /
+// « Départements » sont chez deux joueurs différents
+// (vérifier une région demande alors forcément une épingle du collègue).
+export function repartir(dossier, equipe, h) {
+  const utiles = ongletsUtiles(dossier);
+  const n = equipe.length;
+  let rep = null;
+  for (let essai = 0; essai < 200; essai++) {
+    const ordre = h.melanger(CLES_ONGLETS);
+    const r = Object.fromEntries(equipe.map((id) => [id, []]));
+    ordre.forEach((k, i) => r[equipe[i % n]].push(k));
+    rep = r;
+    const proprio = (k) => equipe.find((id) => r[id].includes(k));
+    const servis = equipe.filter((id) => r[id].some((k) => utiles.has(k))).length;
+    const chacunUtile = servis >= Math.min(n, utiles.size);
+    if (chacunUtile && proprio('communes') !== proprio('departements')) break;
+  }
+  for (const id of equipe) rep[id].sort((a, b) => CLES_ONGLETS.indexOf(a) - CLES_ONGLETS.indexOf(b));
+  return rep;
+}
 
 export class Salon {
   constructor(code, maintenant = () => Date.now()) {
@@ -31,7 +55,7 @@ export class Salon {
     this.maintenant = maintenant;
     this.joueurs = [];
     this.hoteId = null;
-    this.config = { partie: '1', graine: '', rotation: 2 };
+    this.config = { partie: '1', graine: '' };
     this.phase = 'attente';
     this.partie = null;
     this.activite = maintenant();
@@ -44,7 +68,8 @@ export class Salon {
     if (this.phase === 'jeu') refuser('Une partie est en cours dans ce salon. Attendez la fin de la journée.');
     if (this.joueurs.length >= MAX_JOUEURS) refuser('Ce salon est complet (3 joueurs maximum).');
     if (this.joueurs.some((j) => j.pseudo.toLowerCase() === pseudo.toLowerCase())) pseudo += ` ${this.joueurs.length + 1}`;
-    const j = { id: randomUUID().slice(0, 8), jeton: randomUUID(), pseudo, connecte: false };
+    const libre = COULEURS.find((c) => !this.joueurs.some((j) => j.couleur === c));
+    const j = { id: randomUUID().slice(0, 8), jeton: randomUUID(), pseudo, couleur: libre, connecte: false };
     this.joueurs.push(j);
     this.hoteId ??= j.id;
     this.toucher();
@@ -52,18 +77,16 @@ export class Salon {
   }
 
   parJeton(jeton) { return this.joueurs.find((j) => j.jeton === jeton) ?? null; }
+  joueur(id) { return this.joueurs.find((j) => j.id === id) ?? null; }
+  pseudo(id) { return this.joueur(id)?.pseudo ?? '?'; }
 
   connexion(joueur, etat) {
     joueur.connecte = etat;
-    if (!etat && this.phase !== 'jeu') {
-      // hors partie, un joueur déconnecté libère sa place après coup (voir nettoyer())
-      joueur.parti = this.maintenant();
-    } else delete joueur.parti;
+    if (!etat && this.phase !== 'jeu') joueur.parti = this.maintenant(); else delete joueur.parti;
     this.toucher();
   }
 
   nettoyer() {
-    // Retire les joueurs déconnectés depuis plus de 60 s hors partie
     const t = this.maintenant();
     const avant = this.joueurs.length;
     if (this.phase !== 'jeu') this.joueurs = this.joueurs.filter((j) => j.connecte || !j.parti || t - j.parti < 60000);
@@ -71,34 +94,22 @@ export class Salon {
     if (this.joueurs.length !== avant) this.toucher();
   }
 
-  posteDe(id) {
-    const p = this.partie;
-    if (!p) return null;
-    const i = p.equipe.indexOf(id);
-    if (i < 0) return null;
-    const postes = POSTES[p.equipe.length];
-    return postes[(i + p.decalage) % postes.length];
-  }
-
-  joueurAuPoste(poste) {
-    return this.partie?.equipe.find((id) => this.posteDe(id) === poste) ?? null;
-  }
-
   toucher() { this.version++; this.activite = this.maintenant(); }
 
   // ——— Actions
   agir(joueur, a) {
     const t = this.maintenant();
-    const estHote = joueur.id === this.hoteId || !this.joueurs.find((j) => j.id === this.hoteId)?.connecte;
+    const estHote = joueur.id === this.hoteId || !this.joueur(this.hoteId)?.connecte;
     const p = this.partie;
-    const poste = this.posteDe(joueur.id);
+    const enExamen = () => { if (!p || p.etape !== 'examen') refuser('Pas de dossier en examen.'); };
+    const dansEquipe = () => { if (!p?.equipe.includes(joueur.id)) refuser("Vous n'êtes pas dans l'équipe de cette partie."); };
+
     switch (a?.type) {
       case 'config': {
         if (!estHote) refuser("Seul l'hôte règle la partie.");
         if (this.phase === 'jeu') refuser('Partie en cours.');
         if (['1', '2', '3', 'infini'].includes(String(a.partie))) this.config.partie = String(a.partie);
         if (typeof a.graine === 'string') this.config.graine = a.graine.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
-        if ([0, 1, 2, 3, 4].includes(Number(a.rotation))) this.config.rotation = Number(a.rotation);
         break;
       }
       case 'demarrer': {
@@ -116,50 +127,66 @@ export class Salon {
         break;
       }
       case 'signaler': {
-        if (!p || p.etape !== 'examen') refuser('Pas de dossier en examen.');
-        if (poste !== 'geographe') refuser('Seul le géographe annote les déclarations.');
-        const cibles = this.dossier().declarations.map((_, i) => `d${i}`);
-        if (!cibles.includes(a.cible)) refuser('Ligne inconnue.');
-        if (p.signalements.has(a.cible)) p.signalements.delete(a.cible); else p.signalements.add(a.cible);
+        enExamen(); dansEquipe();
+        const cibles = [...this.dossier().declarations.map((_, i) => `d${i}`), 'registre', 'pieces'];
+        if (!cibles.includes(a.cible)) refuser('Élément inconnu.');
+        if (p.signalements.has(a.cible)) p.signalements.delete(a.cible); else p.signalements.set(a.cible, joueur.id);
         break;
       }
-      case 'signaler-piece': {
-        // Registre et pièces : annotés par celui qui les a sous les yeux
-        if (!p || p.etape !== 'examen') refuser('Pas de dossier en examen.');
-        if (!['registre', 'pieces'].includes(a.cible)) refuser('Élément inconnu.');
-        const titulaire = this.joueurAuPoste('inspecteur') ? 'inspecteur' : 'guichet';
-        if (poste !== titulaire) refuser("Cette pièce n'est pas sur votre bureau.");
-        if (p.signalements.has(a.cible)) p.signalements.delete(a.cible); else p.signalements.add(a.cible);
+      case 'epingler': {
+        enExamen(); dansEquipe();
+        if (!p.repartition[joueur.id].includes(a.onglet)) refuser("Cet onglet n'est pas dans votre atlas pour ce dossier.");
+        const texte = texteLigne(a.onglet, String(a.cle ?? ''));
+        if (!texte) refuser("Ligne d'atlas introuvable.");
+        if (p.epingles.some((e) => e.texte === texte)) return; // déjà épinglée
+        if (p.epingles.length >= MAX_EPINGLES) refuser(`Pas plus de ${MAX_EPINGLES} épingles par dossier : retirez-en une.`);
+        p.epingles.push({ id: randomUUID().slice(0, 6), onglet: a.onglet, texte, par: joueur.id });
         break;
       }
-      case 'tamponner': {
-        if (!p || p.etape !== 'examen') refuser('Pas de dossier en examen.');
-        if (poste !== 'guichet') refuser('Seul le guichet tient les tampons.');
+      case 'depingler': {
+        enExamen(); dansEquipe();
+        p.epingles = p.epingles.filter((e) => e.id !== a.id);
+        break;
+      }
+      case 'proposer': {
+        enExamen(); dansEquipe();
         if (!DECISIONS.includes(a.decision)) refuser('Tampon inconnu.');
         if (a.decision === 'TRANSFERER' && !REGIONS[a.destination]) refuser('Choisissez une région de destination.');
-        p.tampon = { decision: a.decision, destination: a.decision === 'TRANSFERER' ? a.destination : null };
-        if (this.joueurAuPoste('inspecteur')) {
-          p.etape = 'validation';
-          p.tampon.jusqua = t + DELAI_OPPOSITION;
-        } else this.resoudre();
+        p.proposition = { decision: a.decision, destination: a.decision === 'TRANSFERER' ? a.destination : null, par: joueur.id };
         break;
       }
-      case 'opposition': {
-        if (!p || p.etape !== 'validation') refuser("Aucun tampon en cours de validation.");
-        if (poste !== 'inspecteur') refuser("Seul l'inspecteur peut faire opposition.");
-        p.oppositions++;
-        p.annonce = { texte: `Opposition de l'inspecteur ! Le tampon « ${LIBELLE_DECISION[p.tampon.decision]} » est annulé.`, t };
-        p.tampon = null;
-        p.etape = 'examen';
-        p.dernierTic = t;
+      case 'contresigner': {
+        enExamen(); dansEquipe();
+        if (!p.proposition) refuser('Aucun tampon à contresigner.');
+        if (p.proposition.par === joueur.id) refuser('Un tampon doit être contresigné par un collègue.');
+        p.proposition.contresigne = joueur.id;
+        this.resoudre();
+        break;
+      }
+      case 'contester': {
+        enExamen(); dansEquipe();
+        if (!p.proposition) refuser('Aucun tampon à contester.');
+        if (p.proposition.par === joueur.id) refuser('Retirez plutôt votre propre proposition.');
+        p.contestations++;
+        p.annonce = { texte: `${joueur.pseudo} conteste le tampon « ${LIBELLE_DECISION[p.proposition.decision]} » proposé par ${this.pseudo(p.proposition.par)}.`, t, ton: 'ko' };
+        p.proposition = null;
+        break;
+      }
+      case 'retirer': {
+        enExamen();
+        if (p.proposition?.par !== joueur.id) refuser("Ce n'est pas votre proposition.");
+        p.proposition = null;
         break;
       }
       case 'repondre': {
-        if (!p?.appel) refuser("Personne au bout du fil.");
-        if (poste !== 'geographe') refuser('Le téléphone sonne chez le géographe.');
-        const juste = Boolean(a.oui) === p.appel.reponse;
-        if (juste) { p.score += 3; p.appels.bons++; } else { p.credibilite -= 5; p.appels.rates++; }
-        p.annonce = { texte: `${juste ? 'Bonne réponse au téléphone : +3 points.' : 'Mauvaise réponse au téléphone : crédibilité −5.'} ${p.appel.explication}`, t, ton: juste ? 'ok' : 'ko' };
+        if (!p?.appel) refuser('Personne au bout du fil.');
+        dansEquipe();
+        const juste = Number(a.choix) === p.appel.bonne;
+        if (juste) { p.score += BONUS_APPEL; p.appels.bons++; } else p.appels.faux++;
+        p.annonce = {
+          texte: `${joueur.pseudo} a répondu au téléphone : ${juste ? `bonne réponse, +${BONUS_APPEL} points !` : 'raté (aucune pénalité).'} ${p.appel.explication}`,
+          t, ton: juste ? 'ok' : 'neutre',
+        };
         p.appel = null;
         p.prochainAppel = p.ecoule + this.delaiAppel();
         break;
@@ -201,27 +228,29 @@ export class Salon {
         titre: j.titre, intro: j.intro, duree: Math.round(j.duree * 1.6) * 1000,
       };
     }
+    const graineSalon = `${this.code}-${this.maintenant()}`;
     this.phase = 'jeu';
     this.partie = {
-      ...cfg, equipe, decalage: 0, index: 0, score: 0, credibilite: 100,
+      ...cfg, equipe, index: 0, score: 0, credibilite: 100,
       etape: 'intro', ecoule: 0, dernierTic: this.maintenant(),
-      signalements: new Set(), tampon: null, correction: null, resultats: [],
-      appel: null, prochainAppel: 20000, appels: { bons: 0, rates: 0 }, oppositions: 0,
-      hasardAppels: creerHasard(`appels-${this.code}-${this.maintenant()}`),
-      annonce: null,
+      signalements: new Map(), epingles: [], proposition: null, correction: null, resultats: [],
+      repartition: null, hasardRepartition: creerHasard(`repartition-${graineSalon}`),
+      appel: null, prochainAppel: 25000, appelsPoses: new Set(), appels: { bons: 0, faux: 0, ignores: 0 },
+      hasardAppels: creerHasard(`appels-${graineSalon}`), contestations: 0, annonce: null,
     };
     if (cfg.mode === 'infini') this.partie.dossiers.push(genererDossier(cfg.hasard, cfg.contexte, 3, 1));
+    this.partie.repartition = repartir(this.dossier(), equipe, this.partie.hasardRepartition);
   }
 
   dossier() { return this.partie.dossiers[this.partie.index]; }
-  delaiAppel() { return this.partie.hasardAppels.entier(22, 40) * 1000; }
+  delaiAppel() { return this.partie.hasardAppels.entier(30, 50) * 1000; }
 
   resoudre() {
     const p = this.partie;
     const d = this.dossier();
     const ref = decider(d, p.contexte);
-    const { decision, destination } = p.tampon;
-    const note = noter(ref, { decision, destination, signalements: p.signalements });
+    const { decision, destination, par, contresigne } = p.proposition;
+    const note = noter(ref, { decision, destination, signalements: new Set(p.signalements.keys()) });
     const penalite = note.bonne ? 0 : d.conseil ? 0 : p.mode === 'campagne' ? 12 : 20;
     p.score += note.points;
     p.credibilite -= penalite;
@@ -230,11 +259,12 @@ export class Salon {
     p.correction = {
       bonne: note.bonne, justification: note.justification, points: note.points, penalite,
       decision, destination, attendu: ref.decision, destinationAttendue: ref.destination ?? null,
+      signataires: [this.pseudo(par), this.pseudo(contresigne)],
       explications: [...ref.explications, ...ref.motifs], note: c.note,
       lecon: conseilErreur(d, ref, decision),
-      dossier: this.dossierComplet(d, ref),
+      anomalies: [...ref.anomalies],
     };
-    p.tampon = null;
+    p.proposition = null;
     p.etape = 'correction';
   }
 
@@ -245,148 +275,105 @@ export class Salon {
     if (p.mode === 'campagne' && p.index >= p.dossiers.length) return this.finir('fini');
     if (p.mode === 'infini' && p.index >= p.dossiers.length)
       p.dossiers.push(genererDossier(p.hasard, p.contexte, 3, p.index + 1));
-    p.signalements = new Set();
+    p.signalements = new Map();
+    p.epingles = [];
     p.correction = null;
     p.etape = 'examen';
     p.dernierTic = this.maintenant();
-    const r = this.config.rotation;
-    if (r > 0 && p.index % r === 0) {
-      p.decalage++;
-      p.annonce = {
-        texte: `Changement de poste ! ${p.equipe.map((id) => `${this.pseudo(id)} : ${NOM_POSTE[this.posteDe(id)]}`).join(' · ')}`,
-        t: this.maintenant(), ton: 'rotation',
-      };
-    }
+    p.repartition = repartir(this.dossier(), p.equipe, p.hasardRepartition);
   }
 
   finir(raison) {
     this.phase = 'bilan';
     this.partie.etape = 'bilan';
     this.partie.raison = raison;
-    this.partie.appel = null;
+    if (this.partie.appel) this.partie.appel = null;
   }
-
-  pseudo(id) { return this.joueurs.find((j) => j.id === id)?.pseudo ?? '?'; }
 
   // Avance le temps de jeu. Retourne true si l'état a changé.
   tic() {
     const p = this.partie;
     if (this.phase !== 'jeu' || !p) return false;
     const t = this.maintenant();
-    let change = false;
-    if (p.etape === 'validation' && t >= p.tampon.jusqua) { this.resoudre(); change = true; }
-    if (p.etape === 'examen' || p.etape === 'validation') {
-      const dt = Math.max(0, t - (p.dernierTic ?? t));
-      p.ecoule += dt;
-      change = true;
-      if (p.duree && p.ecoule >= p.duree) { this.finir('retard'); this.toucher(); return true; }
-      if (this.joueurAuPoste('geographe')) {
-        if (p.appel && p.ecoule >= p.appel.jusqua) {
-          p.credibilite -= 5; p.appels.rates++;
-          p.annonce = { texte: `Le téléphone a sonné dans le vide : crédibilité −5. ${p.appel.explication}`, t, ton: 'ko' };
-          p.appel = null;
-          p.prochainAppel = p.ecoule + this.delaiAppel();
-        } else if (!p.appel && p.ecoule >= p.prochainAppel) {
-          p.appel = { ...genererAppel(p.hasardAppels), jusqua: p.ecoule + DUREE_APPEL, id: randomUUID().slice(0, 6) };
-        }
-      }
-      if (p.credibilite <= 0 && p.etape === 'examen') { this.finir('credibilite'); }
-    }
+    if (p.etape !== 'examen') { p.dernierTic = t; return false; }
+    p.ecoule += Math.max(0, t - (p.dernierTic ?? t));
     p.dernierTic = t;
-    if (change) this.toucher();
-    return change;
+    if (p.duree && p.ecoule >= p.duree) { this.finir('retard'); this.toucher(); return true; }
+    if (p.appel && p.ecoule >= p.appel.jusqua) {
+      p.appels.ignores++;
+      p.annonce = { texte: `Personne n'a décroché (aucune pénalité). ${p.appel.explication}`, t, ton: 'neutre' };
+      p.appel = null;
+      p.prochainAppel = p.ecoule + this.delaiAppel();
+    } else if (!p.appel && p.ecoule >= p.prochainAppel) {
+      const a = genererAppel(p.hasardAppels, p.appelsPoses);
+      p.appelsPoses.add(a.numero);
+      p.appel = { ...a, jusqua: p.ecoule + DUREE_APPEL, id: randomUUID().slice(0, 6) };
+    }
+    this.toucher();
+    return true;
   }
 
-  // ——— Vues
-  dossierComplet(d, ref) {
-    const c = COMMUNE_PAR_INSEE[d.insee];
-    return {
-      commune: c.nom,
-      objet: OBJETS[d.objet.type].libelle(d.objet),
-      condition: OBJETS[d.objet.type].condition(d.objet),
-      montant: d.montant,
-      declarations: d.declarations.map((x, i) => {
-        const [label, valeur] = libelleDeclaration(x);
-        return { cible: `d${i}`, label, valeur, anomalie: ref?.anomalies.has(`d${i}`) ?? false };
-      }),
-      pieces: d.pieces.map((x) => PIECES[x]),
-      registre: { nom: c.nom.toUpperCase(), insee: d.registre.insee },
-      anomaliesPieces: ref ? ['registre', 'pieces'].filter((k) => ref.anomalies.has(k)) : [],
-    };
-  }
-
+  // ——— Vue (identique pour tous, sauf « mes onglets »)
   vuePour(joueurId) {
-    const moi = this.joueurs.find((j) => j.id === joueurId);
+    const moi = this.joueur(joueurId);
     const p = this.partie;
     const v = {
       code: this.code,
       phase: this.phase,
-      moi: { id: moi.id, pseudo: moi.pseudo, poste: this.posteDe(moi.id) },
+      moi: { id: moi.id, pseudo: moi.pseudo, couleur: moi.couleur },
       hote: moi.id === this.hoteId,
       hoteId: this.hoteId,
-      joueurs: this.joueurs.map((j) => ({ id: j.id, pseudo: j.pseudo, connecte: j.connecte, poste: this.posteDe(j.id) })),
+      joueurs: this.joueurs.map((j) => ({ id: j.id, pseudo: j.pseudo, couleur: j.couleur, connecte: j.connecte })),
       config: this.config,
       journees: JOURNEES.map((j) => ({ id: String(j.id), titre: j.titre })),
     };
     if (!p) return v;
 
-    const section = SECTIONS[p.contexte.section];
-    const inspecteur = Boolean(this.joueurAuPoste('inspecteur'));
+    const couleur = (id) => this.joueur(id)?.couleur ?? 'bleu';
     v.partie = {
       titre: p.titre, intro: p.intro, mode: p.mode, etape: p.etape,
-      section: section.nom, contexte: { section: p.contexte.section, decrets: p.contexte.decrets },
+      section: SECTIONS[p.contexte.section].nom, contexte: { section: p.contexte.section, decrets: p.contexte.decrets },
       index: p.index, total: p.mode === 'campagne' ? p.dossiers.length : null,
       score: p.score, credibilite: Math.max(0, p.credibilite),
       horloge: this.horloge(), tard: p.duree ? p.ecoule / p.duree > 0.8 : false,
-      annonce: p.annonce && this.maintenant() - p.annonce.t < 9000 ? p.annonce : null,
-      nbSignalements: p.signalements.size,
-      inspecteur,
-      rotation: this.config.rotation,
-      prochaineRotation: this.config.rotation ? this.config.rotation - (p.index % this.config.rotation) : null,
+      annonce: p.annonce && this.maintenant() - p.annonce.t < 10000 ? p.annonce : null,
+      mesOnglets: p.repartition?.[moi.id] ?? [],
+      repartition: p.equipe.map((id) => ({
+        id, pseudo: this.pseudo(id), couleur: couleur(id),
+        onglets: (p.repartition?.[id] ?? []).map((k) => ONGLETS[k].titre),
+        cles: p.repartition?.[id] ?? [],
+      })),
+    };
+    if (this.phase === 'bilan') {
+      v.partie.bilan = { raison: p.raison, resultats: p.resultats, appels: p.appels, contestations: p.contestations };
+      return v;
+    }
+    if (p.etape === 'intro') return v;
+
+    const d = this.dossier();
+    const c = COMMUNE_PAR_INSEE[d.insee];
+    const signe = (k) => (p.signalements.has(k) ? couleur(p.signalements.get(k)) : null);
+    v.partie.dossier = {
+      ref: d.id, commune: c.nom, objet: OBJETS[d.objet.type].libelle(d.objet),
+      condition: OBJETS[d.objet.type].condition(d.objet), montant: d.montant,
+      demandeur: d.demandeur, mot: d.mot, conseil: d.conseil ?? null,
+      declarations: d.declarations.map((x, i) => {
+        const [label, valeur] = libelleDeclaration(x);
+        return { cible: `d${i}`, label, valeur, signale: signe(`d${i}`) };
+      }),
+      pieces: d.pieces.map((x) => PIECES[x]), piecesSignale: signe('pieces'),
+      registre: { nom: c.nom.toUpperCase(), insee: d.registre.insee, signale: signe('registre') },
+    };
+    v.partie.epingles = p.epingles.map((e) => ({ id: e.id, texte: e.texte, pseudo: this.pseudo(e.par), couleur: couleur(e.par) }));
+    if (p.proposition) v.partie.proposition = {
+      decision: p.proposition.decision, destination: p.proposition.destination,
+      parMoi: p.proposition.par === moi.id, pseudo: this.pseudo(p.proposition.par), couleur: couleur(p.proposition.par),
+    };
+    if (p.appel) v.partie.appel = {
+      id: p.appel.id, appelant: p.appel.appelant, texte: p.appel.texte, choix: p.appel.choix,
+      resteMs: Math.max(0, p.appel.jusqua - p.ecoule),
     };
     if (p.etape === 'correction') v.partie.correction = p.correction;
-    if (p.etape === 'validation') v.partie.validation = {
-      decision: p.tampon.decision, destination: p.tampon.destination,
-      resteMs: Math.max(0, p.tampon.jusqua - this.maintenant()),
-    };
-    if (this.phase === 'bilan') v.partie.bilan = {
-      raison: p.raison, resultats: p.resultats, appels: p.appels, oppositions: p.oppositions,
-    };
-
-    if (p.etape === 'examen' || p.etape === 'validation') {
-      const d = this.dossier();
-      const c = COMMUNE_PAR_INSEE[d.insee];
-      const poste = v.moi.poste;
-      const titulairePieces = inspecteur ? 'inspecteur' : 'guichet';
-      const bureau = {};
-      if (poste === 'guichet') {
-        Object.assign(bureau, {
-          ref: d.id, commune: c.nom, objet: OBJETS[d.objet.type].libelle(d.objet),
-          condition: OBJETS[d.objet.type].condition(d.objet), montant: d.montant,
-          demandeur: d.demandeur, mot: d.mot, conseil: d.conseil ?? null,
-        });
-      }
-      if (poste === 'geographe') {
-        bureau.declarations = d.declarations.map((x, i) => {
-          const [label, valeur] = libelleDeclaration(x);
-          return { cible: `d${i}`, label, valeur, signale: p.signalements.has(`d${i}`) };
-        });
-        if (p.appel) bureau.appel = {
-          id: p.appel.id, appelant: p.appel.appelant, texte: p.appel.texte,
-          resteMs: Math.max(0, p.appel.jusqua - p.ecoule),
-        };
-      }
-      if (poste === titulairePieces) {
-        Object.assign(bureau, {
-          montant: d.montant,
-          pieces: d.pieces.map((x) => PIECES[x]),
-          registre: { nom: c.nom.toUpperCase(), insee: d.registre.insee },
-          reglement: true,
-          signalementsPieces: ['registre', 'pieces'].filter((k) => p.signalements.has(k)),
-        });
-      }
-      v.partie.bureau = bureau;
-    }
     return v;
   }
 

@@ -6,6 +6,7 @@
 import { COMMUNES } from '../src/data/communes.js';
 import { DEPARTEMENTS, REGIONS } from '../src/data/territoires.js';
 import { COURS_EAU, MASSIFS } from '../src/data/geographie.js';
+import { CULTURE } from '../src/data/culture.js';
 
 const L = [];
 L.push('# Fiche de relecture des faits géographiques', '');
@@ -25,6 +26,9 @@ for (const [n, f] of Object.entries(COURS_EAU))
 
 L.push('', '## Régions des massifs', '', 'Même principe : aucune région concernée ne doit manquer.', '');
 for (const [n, m] of Object.entries(MASSIFS)) L.push(`- [ ] **${n}** : ${m.regions.map((r) => REGIONS[r]).join(', ')}`);
+
+L.push('', '## Questions bonus du téléphone (src/data/culture.js)', '', 'Vérifier la bonne réponse ET que les deux autres choix sont bien faux.', '');
+for (const q of CULTURE) L.push(`- [ ] ${q.question} → **${q.bonne}** (faux : ${q.faux.join(', ')})`);
 
 L.push('', '## Pistes de dossiers « très difficiles » (en zone grise, à vérifier avant usage)', '');
 L.push('- Arles touche-t-elle la Méditerranée (Camargue, plage de Piémanson) ? Si oui : `littoral: true, mer: \'Méditerranée\'` → dossier piège « Arles demande le Fonds littoral » = ACCEPTER.');

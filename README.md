@@ -32,15 +32,15 @@ Le mode en ligne a besoin du petit serveur Node du jeu (`server/`, aucune dépen
 
 Sur l'offre gratuite de Render, le serveur s'endort après 15 min sans visite : le premier chargement prend alors 30 à 60 s, et les salons en cours sont effacés.
 
-| Poste | Voit | Agit |
-|---|---|---|
-| Agent de guichet | commune, objet, condition d'éligibilité, demandeur | pose les quatre tampons |
-| Géographe | les déclarations (sans le nom de la commune !) et l'atlas | annote les lignes fausses, répond au téléphone |
-| Inspecteur (à 3) | règlement, décrets, montant, pièces, registre | annote pièces et registre, peut faire **opposition** à un tampon pendant 4 s |
+Pensé pour jouer **au bureau, sans se parler** :
 
-À deux, le guichet reprend le rôle de l'inspecteur. Les postes tournent tous les N dossiers (réglable par l'hôte).
+- Tout le monde voit **le même dossier**, et chaque annotation apparaît en direct chez les autres, dans la couleur de son auteur.
+- **L'atlas est coupé** : ses 6 onglets sont répartis entre les joueurs, et la répartition change à chaque dossier. Chacun reçoit au moins un onglet utile, et « Communes » / « Départements » sont toujours chez deux personnes différentes.
+- On partage ce qu'on trouve en **épinglant** une ligne de son atlas sur le dossier commun.
+- **Double signature** : un joueur propose un tampon, un collègue le contresigne (ou le conteste).
+- **Téléphone** : de temps en temps, une question de culture géographique dont la réponse n'est pas dans l'atlas. Bonus de 5 points, aucune pénalité, aucune obligation.
 
-### Raccourcis (guichet)
+### Raccourcis
 
 `1` Accepter · `2` Rectifier · `3` Transférer · `4` Refuser · `Entrée` dossier suivant
 
@@ -49,7 +49,7 @@ Sur l'offre gratuite de Render, le serveur s'endort après 15 min sans visite : 
 - 3 journées de campagne écrites à la main (24 dossiers) + mode infini généré à partir d'une graine
 - 83 communes, 101 départements, 18 régions, 101 chefs-lieux, 27 cours d'eau, 5 massifs, 4 mers
 - Atlas thématique, règlement et décrets du jour, extrait de registre falsifiable
-- Mode en ligne : salons à code, dossier réparti entre les postes, rotation des rôles, standard téléphonique, opposition de l'inspecteur
+- Mode en ligne : salons à code, bureau partagé en direct, atlas réparti entre les joueurs, épingles, double signature, questions bonus au téléphone
 - Semaine 1 en période d'essai : notes du chef de bureau, condition d'éligibilité affichée, explication ciblée après chaque erreur
 - Explication pédagogique après chaque dossier, bilan de journée, carrière (de stagiaire à directeur du tampon national)
 
@@ -58,7 +58,7 @@ Sur l'offre gratuite de Render, le serveur s'endort après 15 min sans visite : 
 Aucun verdict n'est écrit à la main : le moteur le calcule depuis la base, et tout fait incertain est exclu des dossiers. Codes et noms sont vérifiés en continu contre l'API officielle `geo.api.gouv.fr`. Détails dans [docs/DONNEES.md](docs/DONNEES.md).
 
 ```bash
-npm test                          # 25 tests : données, moteur, campagne, générateur, salons en ligne
+npm test                          # 26 tests : données, moteur, campagne, générateur, salons en ligne
 node tools/verifier-officiel.mjs  # comparaison avec le Code officiel géographique
 ```
 

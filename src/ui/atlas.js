@@ -1,105 +1,82 @@
-// Atlas officiel du géographe. Organisé par thème (comme un vrai atlas) :
-// l'index des communes ne donne QUE le département ; il faut croiser les
-// tables pour vérifier une région, un fleuve, un massif ou une préfecture.
-// Les communes en zone grise n'apparaissent ni dans « oui » ni dans « non ».
-import { REGIONS, DEPARTEMENTS, CHEFS_LIEUX } from '../data/territoires.js';
-import { COMMUNES } from '../data/communes.js';
-import { COURS_EAU, MASSIFS, MERS } from '../data/geographie.js';
+// Atlas officiel. Organisé par thème (comme un vrai atlas) : l'index des
+// communes ne donne QUE le département ; il faut croiser les tables.
+// Options (jeu en ligne) :
+//   onglets    : liste des onglets accessibles au joueur (les autres sont grisés)
+//   proprietaires : { onglet: 'Bob' } pour indiquer qui détient un onglet absent
+//   epingler(onglet, cle) : rend les lignes cliquables (épingler au dossier commun)
+import { ONGLETS, CLES_ONGLETS } from '../moteur/atlas-donnees.js';
 
-const tri = (a, b) => a.localeCompare(b, 'fr');
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const sansAccent = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-const listeRegions = (codes) => codes.map((r) => REGIONS[r]).sort(tri).join(', ');
-const noms = (l) => l.map((c) => c.nom).sort(tri);
+const CODE = new Set(['N°', 'Dép.']);
 
-const ONGLETS = {
-  communes: {
-    titre: 'Communes',
-    rendu: () => `
-      <p class="atlas-aide">Index alphabétique. Pour la région, consultez la table des départements.</p>
-      <table class="atlas-table filtrable"><thead><tr><th>Commune</th><th>Dép.</th></tr></thead><tbody>
-      ${[...COMMUNES].sort((a, b) => tri(a.nom, b.nom)).map((c) =>
-        `<tr data-cle="${esc(sansAccent(c.nom))}"><td>${esc(c.nom)}</td><td class="code">${c.dep}</td></tr>`).join('')}
-      </tbody></table>`,
-  },
-  departements: {
-    titre: 'Départements',
-    rendu: () => `
-      <table class="atlas-table filtrable"><thead><tr><th>N°</th><th>Département</th><th>Région</th></tr></thead><tbody>
-      ${Object.entries(DEPARTEMENTS).map(([code, d]) =>
-        `<tr data-cle="${esc(sansAccent(`${code} ${d.nom} ${REGIONS[d.region]}`))}"><td class="code">${code}</td><td>${esc(d.nom)}</td><td>${esc(REGIONS[d.region])}</td></tr>`).join('')}
-      </tbody></table>`,
-  },
-  prefectures: {
-    titre: 'Préfectures',
-    rendu: () => `
-      <p class="atlas-aide">Chef-lieu de chaque département. Une commune absente de cette liste n'est pas une préfecture.</p>
-      <table class="atlas-table filtrable"><thead><tr><th>N°</th><th>Département</th><th>Préfecture</th></tr></thead><tbody>
-      ${Object.entries(DEPARTEMENTS).filter(([code]) => CHEFS_LIEUX[code]).map(([code, d]) =>
-        `<tr data-cle="${esc(sansAccent(`${code} ${d.nom} ${CHEFS_LIEUX[code]}`))}"><td class="code">${code}</td><td>${esc(d.nom)}</td><td>${esc(CHEFS_LIEUX[code])}</td></tr>`).join('')}
-      </tbody></table>`,
-  },
-  littoral: {
-    titre: 'Littoral',
-    rendu: () => {
-      const parMer = Object.keys(MERS).map((m) => {
-        const l = noms(COMMUNES.filter((c) => c.littoral === true && c.mer === m));
-        return `<dt>${esc(MERS[m].libelle)}</dt><dd>${l.map(esc).join(', ') || '—'}</dd>`;
-      }).join('');
-      const sansMer = noms(COMMUNES.filter((c) => c.littoral === true && !c.mer));
-      const terre = noms(COMMUNES.filter((c) => c.littoral === false));
-      return `
-        <h4>Communes littorales, par mer bordante</h4><dl class="atlas-dl">${parMer}
-        ${sansMer.length ? `<dt>Littorales, mer non arrêtée</dt><dd>${sansMer.map(esc).join(', ')}</dd>` : ''}</dl>
-        <h4>Communes sans façade maritime</h4><p class="atlas-liste">${terre.map(esc).join(', ')}</p>`;
-    },
-  },
-  fleuves: {
-    titre: "Cours d'eau",
-    rendu: () => Object.entries(COURS_EAU).sort(([a], [b]) => tri(a, b)).map(([nom, f]) => {
-      const l = noms(COMMUNES.filter((c) => c.fleuves.includes(nom)));
-      return `<div class="atlas-fiche"><h4>${esc(nom)}</h4>
-        <p><span class="atlas-label">Régions traversées ou longées</span> ${f.regions ? esc(listeRegions(f.regions)) : '<em>non arrêtées</em>'}</p>
-        <p><span class="atlas-label">Communes riveraines répertoriées</span> ${l.map(esc).join(', ') || '—'}</p></div>`;
-    }).join(''),
-  },
-  massifs: {
-    titre: 'Montagne',
-    rendu: () => {
-      const fiches = Object.entries(MASSIFS).map(([nom, m]) => {
-        const l = noms(COMMUNES.filter((c) => c.massif === nom));
-        return `<div class="atlas-fiche"><h4>${esc(m.libelle.replace(/^(les|le) /, ''))}</h4>
-          <p><span class="atlas-label">Régions concernées</span> ${esc(listeRegions(m.regions))}</p>
-          <p><span class="atlas-label">Communes du massif</span> ${l.map(esc).join(', ') || '—'}</p></div>`;
-      }).join('');
-      const hors = noms(COMMUNES.filter((c) => c.massif === false));
-      return `${fiches}<h4>Communes hors de tout massif</h4><p class="atlas-liste">${hors.map(esc).join(', ')}</p>`;
-    },
-  },
-};
-
-export function monterAtlas(conteneur) {
+export function monterAtlas(conteneur, options = {}) {
+  let actif = null;
+  let opts = options;
   conteneur.innerHTML = `
-    <div class="atlas-onglets" role="tablist">
-      ${Object.entries(ONGLETS).map(([k, o], i) =>
-        `<button role="tab" class="atlas-onglet" data-onglet="${k}" aria-selected="${i === 0}">${o.titre}</button>`).join('')}
-    </div>
+    <div class="atlas-onglets" role="tablist"></div>
     <label class="atlas-recherche"><span class="sr">Rechercher</span>
       <input type="search" placeholder="Rechercher…" autocomplete="off"></label>
     <div class="atlas-page" role="tabpanel"></div>`;
+  const barre = conteneur.querySelector('.atlas-onglets');
   const page = conteneur.querySelector('.atlas-page');
   const champ = conteneur.querySelector('input');
-  const afficher = (k) => {
-    conteneur.querySelectorAll('.atlas-onglet').forEach((b) => b.setAttribute('aria-selected', b.dataset.onglet === k));
-    page.innerHTML = ONGLETS[k].rendu();
+
+  const accessible = (k) => !opts.onglets || opts.onglets.includes(k);
+
+  function rendreOnglets() {
+    barre.innerHTML = CLES_ONGLETS.map((k) => {
+      const ok = accessible(k);
+      const chez = !ok && opts.proprietaires?.[k] ? ` (chez ${esc(opts.proprietaires[k])})` : '';
+      return `<button role="tab" class="atlas-onglet${ok ? '' : ' verrouille'}" data-onglet="${k}"
+        aria-selected="${k === actif}" ${ok ? '' : 'disabled'} title="${ok ? '' : `Onglet détenu par un collègue${chez}`}">
+        ${ONGLETS[k].titre}${chez ? `<span class="chez">${chez}</span>` : ''}</button>`;
+    }).join('');
+  }
+
+  function afficher(k) {
+    actif = k ?? null;
+    rendreOnglets();
+    if (!actif) { page.innerHTML = '<p class="atlas-aide">Aucun onglet pour le moment.</p>'; return; }
+    const cliquable = Boolean(opts.epingler);
+    page.innerHTML = ONGLETS[k].sections().map((s) => `
+      <p class="atlas-aide">${esc(s.aide)}${cliquable ? ' Cliquez une ligne pour l\'épingler au dossier.' : ''}</p>
+      <table class="atlas-table"><thead><tr>${s.colonnes.map((c) => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>
+      ${s.lignes.map((l) => `<tr data-cle="${esc(l.cle)}" data-recherche="${esc(sansAccent(l.cellules.join(' ')))}"${cliquable ? ' class="epinglable" tabindex="0"' : ''}>
+        ${l.cellules.map((v, i) => `<td${CODE.has(s.colonnes[i]) ? ' class="code"' : ''}>${esc(v)}</td>`).join('')}</tr>`).join('')}
+      </tbody></table>`).join('');
     page.scrollTop = 0;
     filtrer();
-  };
-  const filtrer = () => {
+  }
+
+  function filtrer() {
     const q = sansAccent(champ.value.trim());
-    page.querySelectorAll('tr[data-cle]').forEach((tr) => { tr.hidden = q && !tr.dataset.cle.includes(q); });
+    page.querySelectorAll('tr[data-recherche]').forEach((tr) => { tr.hidden = q && !tr.dataset.recherche.includes(q); });
+  }
+
+  barre.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-onglet]');
+    if (b && !b.disabled) afficher(b.dataset.onglet);
+  });
+  const epingle = (tr) => {
+    if (!tr || !opts.epingler) return;
+    opts.epingler(actif, tr.dataset.cle);
+    tr.classList.add('epinglee');
+    setTimeout(() => tr.classList.remove('epinglee'), 700);
   };
-  conteneur.querySelectorAll('.atlas-onglet').forEach((b) => b.addEventListener('click', () => afficher(b.dataset.onglet)));
+  page.addEventListener('click', (e) => epingle(e.target.closest('tr.epinglable')));
+  page.addEventListener('keydown', (e) => { if (e.key === 'Enter') epingle(e.target.closest('tr.epinglable')); });
   champ.addEventListener('input', filtrer);
-  afficher('communes');
+
+  const premier = () => CLES_ONGLETS.find(accessible);
+  afficher(premier());
+
+  return {
+    // Change les onglets accessibles (nouvelle répartition à chaque dossier)
+    configurer(nouvelles) {
+      opts = { ...opts, ...nouvelles };
+      champ.value = '';
+      afficher(accessible(actif) ? actif : premier());
+    },
+  };
 }

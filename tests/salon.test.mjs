@@ -1,10 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Salon } from '../server/salon.mjs';
+import { Salon, repartir } from '../server/salon.mjs';
 import { creerServeur } from '../server/serveur.mjs';
 import { creerHasard } from '../src/moteur/hasard.js';
 import { genererAppel } from '../src/moteur/telephone.js';
+import { CULTURE } from '../src/data/culture.js';
 import { decider } from '../src/moteur/regles.js';
+import { ongletsUtiles, texteLigne, CLES_ONGLETS } from '../src/moteur/atlas-donnees.js';
+import { JOURNEES } from '../src/campagne/journees.js';
 
 function salonDe(n, horloge = { t: 0 }) {
   const s = new Salon('TEST', () => horloge.t);
@@ -12,114 +15,130 @@ function salonDe(n, horloge = { t: 0 }) {
   js.forEach((j) => s.connexion(j, true));
   return { s, js, horloge };
 }
-const poste = (s, j) => s.posteDe(j.id);
-const au = (s, js, p) => js.find((j) => s.posteDe(j.id) === p);
+function partie(n) {
+  const r = salonDe(n);
+  r.s.agir(r.js[0], { type: 'demarrer' });
+  r.s.agir(r.js[0], { type: 'commencer' });
+  return r;
+}
 
-test('salle d\'attente : hôte, limite de 3, pseudos uniques', () => {
+test("salle d'attente : hôte, couleurs, limite de 3", () => {
   const { s, js } = salonDe(3);
   assert.equal(s.hoteId, js[0].id);
+  assert.deepEqual(js.map((j) => j.couleur), ['bleu', 'vert', 'violet']);
   assert.throws(() => s.rejoindre('X'), /complet/);
   assert.throws(() => s.agir(js[1], { type: 'demarrer' }), /hôte/);
-  const s2 = new Salon('AAAA');
-  assert.notEqual(s2.rejoindre('Paul').pseudo, s2.rejoindre('paul').pseudo);
 });
 
-test('chaque poste ne voit que sa part du dossier', () => {
-  const { s, js } = salonDe(3);
-  s.agir(js[0], { type: 'demarrer' });
-  s.agir(js[0], { type: 'commencer' });
-  const g = s.vuePour(au(s, js, 'guichet').id).partie.bureau;
-  const geo = s.vuePour(au(s, js, 'geographe').id).partie.bureau;
-  const ins = s.vuePour(au(s, js, 'inspecteur').id).partie.bureau;
-  assert.ok(g.commune && g.objet && g.condition);
-  assert.equal(g.declarations, undefined);
-  assert.equal(g.registre, undefined);
-  assert.ok(geo.declarations.length >= 2);
-  assert.equal(geo.commune, undefined);
-  assert.ok(ins.registre && ins.reglement);
-  assert.equal(ins.commune, undefined);
-  assert.equal(ins.declarations, undefined);
+test('répartition : tous les onglets distribués, un maximum de joueurs utiles, communes et départements séparés', () => {
+  const tous = JOURNEES.flatMap((j) => j.dossiers);
+  for (const n of [2, 3]) {
+    const equipe = Array.from({ length: n }, (_, i) => `j${i}`);
+    for (const [k, d] of tous.entries()) {
+      const r = repartir(d, equipe, creerHasard(`r${n}-${k}`));
+      const donnes = Object.values(r).flat().sort();
+      assert.deepEqual(donnes, [...CLES_ONGLETS].sort());
+      const utiles = ongletsUtiles(d);
+      const servis = equipe.filter((id) => r[id].some((o) => utiles.has(o))).length;
+      assert.ok(servis >= Math.min(n, utiles.size), `${d.id} : ${servis} joueur(s) avec un onglet utile`);
+      const proprio = (o) => equipe.find((id) => r[id].includes(o));
+      assert.notEqual(proprio('communes'), proprio('departements'), d.id);
+    }
+  }
 });
 
-test('à deux, le guichet récupère registre et règlement', () => {
-  const { s, js } = salonDe(2);
-  s.agir(js[0], { type: 'demarrer' });
-  s.agir(js[0], { type: 'commencer' });
-  const g = s.vuePour(au(s, js, 'guichet').id).partie.bureau;
-  assert.ok(g.commune && g.registre && g.reglement);
+test('écran partagé : tout le monde voit le même dossier, seuls les onglets diffèrent', () => {
+  const { s, js } = partie(2);
+  const [a, b] = js.map((j) => s.vuePour(j.id).partie);
+  assert.deepEqual(a.dossier, b.dossier);
+  assert.ok(a.dossier.commune && a.dossier.declarations.length && a.dossier.registre);
+  assert.equal(a.mesOnglets.length, 3);
+  assert.equal(b.mesOnglets.length, 3);
+  assert.equal(a.mesOnglets.filter((o) => b.mesOnglets.includes(o)).length, 0);
 });
 
-test('seuls les bons postes peuvent agir', () => {
-  const { s, js } = salonDe(3);
-  s.agir(js[0], { type: 'demarrer' });
-  s.agir(js[0], { type: 'commencer' });
-  assert.throws(() => s.agir(au(s, js, 'geographe'), { type: 'tamponner', decision: 'ACCEPTER' }), /guichet/);
-  assert.throws(() => s.agir(au(s, js, 'guichet'), { type: 'signaler', cible: 'd0' }), /géographe/);
-  assert.throws(() => s.agir(au(s, js, 'guichet'), { type: 'signaler-piece', cible: 'registre' }), /bureau/);
+test('signalements en direct, avec la couleur de leur auteur', () => {
+  const { s, js } = partie(2);
+  s.agir(js[1], { type: 'signaler', cible: 'd0' });
+  assert.equal(s.vuePour(js[0].id).partie.dossier.declarations[0].signale, 'vert');
+  s.agir(js[0], { type: 'signaler', cible: 'd0' });
+  assert.equal(s.vuePour(js[1].id).partie.dossier.declarations[0].signale, null);
 });
 
-test('opposition de l\'inspecteur, puis validation automatique après 4 s', () => {
-  const { s, js, horloge } = salonDe(3);
-  s.agir(js[0], { type: 'demarrer' });
-  s.agir(js[0], { type: 'commencer' });
-  const g = au(s, js, 'guichet');
-  s.agir(g, { type: 'tamponner', decision: 'REFUSER' });
-  assert.equal(s.partie.etape, 'validation');
-  s.agir(au(s, js, 'inspecteur'), { type: 'opposition' });
-  assert.equal(s.partie.etape, 'examen');
-  assert.equal(s.partie.oppositions, 1);
-  s.agir(g, { type: 'tamponner', decision: 'ACCEPTER' });
-  horloge.t += 4100;
-  s.tic();
+test('épingles : seulement depuis ses propres onglets, texte reconstruit par le serveur', () => {
+  const { s, js } = partie(2);
+  const mien = s.partie.repartition[js[0].id];
+  const pasMien = s.partie.repartition[js[1].id];
+  const insee = s.dossier().insee;
+  const ongletCommune = mien.includes('communes') ? js[0] : js[1];
+  s.agir(ongletCommune, { type: 'epingler', onglet: 'communes', cle: insee });
+  const e = s.vuePour(js[0].id).partie.epingles;
+  assert.equal(e.length, 1);
+  assert.equal(e[0].texte, texteLigne('communes', insee));
+  assert.throws(() => s.agir(js[0], { type: 'epingler', onglet: pasMien[0], cle: 'x' }), /pas dans votre atlas/);
+  assert.throws(() => s.agir(js[0], { type: 'epingler', onglet: mien[0], cle: 'inexistant' }), /introuvable/);
+  s.agir(js[1], { type: 'depingler', id: e[0].id });
+  assert.equal(s.vuePour(js[0].id).partie.epingles.length, 0);
+});
+
+test('double signature : proposer, contester, contresigner', () => {
+  const { s, js } = partie(2);
+  s.agir(js[0], { type: 'proposer', decision: 'ACCEPTER' });
+  assert.throws(() => s.agir(js[0], { type: 'contresigner' }), /collègue/);
+  assert.equal(s.vuePour(js[1].id).partie.proposition.pseudo, 'J1');
+  s.agir(js[1], { type: 'contester' });
+  assert.equal(s.partie.proposition, null);
+  assert.equal(s.partie.contestations, 1);
+  s.agir(js[1], { type: 'proposer', decision: 'REFUSER' });
+  s.agir(js[0], { type: 'contresigner' });
   assert.equal(s.partie.etape, 'correction');
-  assert.equal(s.partie.resultats.length, 1);
+  assert.deepEqual(s.partie.correction.signataires, ['J2', 'J1']);
 });
 
-test('partie complète à deux avec les bonnes réponses : 8 × 15 points', () => {
+test('partie complète à deux, bonnes réponses : 8 × 15 points', () => {
   const { s, js, horloge } = salonDe(2);
-  s.agir(js[0], { type: 'config', partie: '1', rotation: 1 });
+  s.agir(js[0], { type: 'config', partie: '1' });
   s.agir(js[0], { type: 'demarrer' });
   s.agir(js[1], { type: 'commencer' });
-  const postes = [];
   for (let i = 0; i < 8; i++) {
-    postes.push(poste(s, js[0]));
-    const d = s.dossier();
-    const ref = decider(d, s.partie.contexte);
-    for (const k of ref.anomalies) {
-      const qui = k.startsWith('d') ? au(s, js, 'geographe') : au(s, js, 'guichet');
-      s.agir(qui, { type: k.startsWith('d') ? 'signaler' : 'signaler-piece', cible: k });
-    }
-    s.agir(au(s, js, 'guichet'), { type: 'tamponner', decision: ref.decision, destination: ref.destination });
-    assert.equal(s.partie.correction.bonne, true, d.id);
+    const ref = decider(s.dossier(), s.partie.contexte);
+    for (const k of ref.anomalies) s.agir(js[i % 2], { type: 'signaler', cible: k });
+    s.agir(js[i % 2], { type: 'proposer', decision: ref.decision, destination: ref.destination });
+    s.agir(js[(i + 1) % 2], { type: 'contresigner' });
+    assert.equal(s.partie.correction.bonne, true);
     horloge.t += 1000;
     s.agir(js[0], { type: 'suivant' });
   }
   assert.equal(s.phase, 'bilan');
   assert.equal(s.partie.score, 120);
-  assert.deepEqual(postes.slice(0, 4), ['guichet', 'geographe', 'guichet', 'geographe'], 'rotation à chaque dossier');
 });
 
-test('téléphone : sonne chez le géographe, réponse notée, appel manqué pénalisé', () => {
-  const { s, js, horloge } = salonDe(2);
-  s.agir(js[0], { type: 'demarrer' });
-  s.agir(js[0], { type: 'commencer' });
-  for (let i = 0; i < 50 && !s.partie.appel; i++) { horloge.t += 1000; s.tic(); }
-  const geo = au(s, js, 'geographe');
-  assert.ok(s.vuePour(geo.id).partie.bureau.appel, 'un appel doit arriver');
-  assert.equal(s.vuePour(au(s, js, 'guichet').id).partie.bureau.appel, undefined);
-  const bonne = s.partie.appel.reponse;
-  s.agir(geo, { type: 'repondre', oui: bonne });
-  assert.equal(s.partie.score, 3);
-  for (let i = 0; i < 80 && !s.partie.appel; i++) { horloge.t += 1000; s.tic(); }
-  horloge.t += 16000; s.tic();
-  assert.equal(s.partie.appels.rates, 1);
-  assert.equal(s.partie.credibilite, 95);
+test('téléphone bonus : visible par tous, bonne réponse +5, raté ou ignoré sans pénalité', () => {
+  const { s, js, horloge } = partie(2);
+  const sonner = () => { for (let i = 0; i < 80 && !s.partie.appel; i++) { horloge.t += 1000; s.tic(); } };
+  sonner();
+  assert.ok(s.vuePour(js[0].id).partie.appel && s.vuePour(js[1].id).partie.appel);
+  s.agir(js[1], { type: 'repondre', choix: s.partie.appel.bonne });
+  assert.equal(s.partie.score, 5);
+  sonner();
+  s.agir(js[0], { type: 'repondre', choix: (s.partie.appel.bonne + 1) % 3 });
+  sonner();
+  horloge.t += 21000; s.tic();
+  assert.deepEqual(s.partie.appels, { bons: 1, faux: 1, ignores: 1 });
+  assert.equal(s.partie.credibilite, 100);
+  assert.equal(s.partie.score, 5);
 });
 
-test('2 000 appels téléphoniques : tous certains, oui et non équilibrés', () => {
-  let oui = 0;
-  for (let g = 0; g < 2000; g++) if (genererAppel(creerHasard(`t${g}`)).reponse) oui++;
-  assert.ok(oui > 600 && oui < 1400, `oui=${oui}`);
+test('banque de culture : 3 choix distincts, bonne réponse retrouvée, pas de répétition', () => {
+  for (const q of CULTURE) assert.equal(new Set([q.bonne, ...q.faux]).size, 3, q.question);
+  const h = creerHasard('quiz');
+  const deja = new Set();
+  for (let i = 0; i < CULTURE.length; i++) {
+    const a = genererAppel(h, deja);
+    assert.ok(!deja.has(a.numero));
+    deja.add(a.numero);
+    assert.equal(a.choix[a.bonne], CULTURE[a.numero].bonne);
+  }
 });
 
 test('serveur HTTP : créer, rejoindre, flux, action, fichiers protégés', async () => {
@@ -140,23 +159,19 @@ test('serveur HTTP : créer, rejoindre, flux, action, fichiers protégés', asyn
     const ctrl = new AbortController();
     const r = await fetch(`${base}/api/salons/${a.code}/flux?jeton=${a.jeton}`, { signal: ctrl.signal });
     const lecteur = r.body.getReader();
-    const lire = async () => {
-      let tampon = '';
-      for (;;) {
-        const { value } = await lecteur.read();
-        tampon += new TextDecoder().decode(value);
-        const m = tampon.match(/data: (.*)\n\n/);
-        if (m) return JSON.parse(m[1]);
-      }
-    };
-    const etat = await lire();
+    let tampon = '';
+    let etat;
+    while (!etat) {
+      const { value } = await lecteur.read();
+      tampon += new TextDecoder().decode(value);
+      const m = tampon.match(/data: (.*)\n\n/);
+      if (m) etat = JSON.parse(m[1]);
+    }
     assert.equal(etat.code, a.code);
     assert.equal(etat.joueurs.length, 2);
-    assert.equal(etat.hote, true);
     const flux2 = await fetch(`${base}/api/salons/${a.code}/flux?jeton=${b.jeton}`);
     const refus = await post(`/api/salons/${a.code}/action`, { jeton: b.jeton, type: 'demarrer' });
     assert.equal(refus.status, 400);
-    assert.match((await refus.json()).erreur, /hôte/);
     assert.equal((await post(`/api/salons/${a.code}/action`, { jeton: a.jeton, type: 'demarrer' })).status, 200);
     ctrl.abort();
     await flux2.body.cancel();

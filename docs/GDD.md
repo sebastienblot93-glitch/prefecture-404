@@ -47,34 +47,26 @@ L'ordre est strict et affiché dans le règlement du joueur :
 
 **Justification.** Avant de tamponner, le joueur clique sur les lignes qu'il juge fausses (marque au crayon rouge). Bonne décision = 10 pts, + 5 si les signalements sont exacts. Une mauvaise décision coûte de la crédibilité. Après chaque dossier, les vraies anomalies sont surlignées et expliquées.
 
-## 4. Coopération en ligne
+## 4. Coopération en ligne : le bureau partagé
 
-### Principe : personne n'a le dossier complet
+Conçu pour jouer **au bureau, sans se parler**. Le serveur (`server/`) est l'unique arbitre ; les joueurs rejoignent un salon avec un code à 4 lettres (2 ou 3 joueurs).
 
-Le serveur (`server/`) est l'unique arbitre : il détient les dossiers, applique le moteur et n'envoie à chaque joueur **que** sa part du dossier. Les joueurs rejoignent un salon avec un code à 4 lettres et doivent se parler (à voix haute ou en visio).
+| Mécanique | Règle | Pourquoi |
+|---|---|---|
+| Écran commun | Tous voient le même dossier, le même règlement ; signalements en direct, colorés par auteur | On travaille sur le même papier |
+| Atlas coupé | Les 6 onglets sont répartis (3 + 3, ou 2 + 2 + 2) et **redistribués à chaque dossier** | Personne ne se spécialise ; chacun a besoin des autres |
+| Répartition intelligente | Chacun reçoit au moins un onglet utile au dossier (quand c'est possible) ; « Communes » et « Départements » sont toujours chez deux joueurs différents | Vérifier une région exige forcément la coopération |
+| Épingles | Cliquer une ligne de son atlas l'épingle sur le dossier commun ; le texte est reconstruit par le serveur depuis la base | Communication silencieuse, et impossible d'épingler une information inventée |
+| Double signature | Un joueur **propose** un tampon ; un autre le **contresigne** (validé) ou le **conteste** (annulé) | Un dossier se valide à deux |
+| Téléphone bonus | Toutes les 30 à 50 s, une question de culture géographique (3 choix, réponse absente de l'atlas), 20 s pour répondre, n'importe quel joueur | +5 points ; aucune pénalité, aucune obligation |
 
-| Poste | Voit | Agit | Ce qui le rend actif |
-|---|---|---|---|
-| Agent de guichet | commune, objet, condition d'éligibilité, demandeur, mot | les 4 tampons | il décide, sous la pression de tous |
-| Géographe | les déclarations **sans le nom de la commune**, l'atlas | annote les lignes fausses (bonus de justification) ; répond au **téléphone** | il doit demander la commune, enquêter dans l'atlas **et** décrocher : un appel toutes les 22 à 40 s, 15 s pour répondre (+3 pts, −5 de crédibilité en cas d'erreur ou d'appel manqué) |
-| Inspecteur (à 3) | règlement, décrets, montant, pièces, registre | annote pièces et registre ; **opposition** à un tampon pendant 4 s | il est seul à connaître les décrets ; il peut sauver (ou retarder) l'équipe |
-
-À deux, le guichet reprend le bureau de l'inspecteur (sans droit d'opposition).
-
-### Rotation des postes
-
-L'hôte choisit : à chaque dossier, tous les 2, 3 ou 4 dossiers, ou jamais. Une annonce signale chaque changement, et le bandeau indique toujours qui tient quel poste et quand aura lieu la prochaine rotation.
-
-### Correction commune
-
-Après chaque tampon, toute l'équipe voit le dossier complet, les anomalies surlignées et l'explication. C'est le moment où l'on comprend qui avait raison.
+Les questions du téléphone viennent de `src/data/culture.js` : faits stables uniquement, sans chiffre discutable, listés dans la fiche de relecture.
 
 ### Pistes pour la suite
 
-- **Dossiers à deux voix** : certaines pièces n'arrivent que chez le géographe (rapport de terrain), d'autres que chez l'inspecteur.
-- **Téléphone qui interfère** : un appelant fournit une information utile au dossier en cours, ou une fausse piste.
-- **Carte muette** pour le géographe (contours des départements, licence Etalab) au lieu d'une partie des tables.
-- **Événements de bureau** : coupure de courant (l'atlas s'éteint 10 s), visite du préfet (double points, double pénalité).
+- **Carte muette** dans la répartition (contours des départements, licence Etalab) comme septième onglet.
+- **Événements de bureau** : coupure de courant (un atlas s'éteint 10 s), visite du préfet (double points, double pénalité).
+- **Dossiers liés** (semaine 4) : une épingle peut citer une décision d'un dossier précédent.
 
 ## 5. Progression
 
@@ -136,8 +128,8 @@ Voir [DONNEES.md](DONNEES.md). En résumé, trois verrous :
 - Décorations de bureau débloquables, nouvelles répliques d'Agrafe, administrés récurrents.
 - Classement quotidien : graine du jour partagée par tous, score publié.
 
-**Lot 4 — Coop en ligne** ✅ (v0.2)
-- Serveur Node sans dépendance (SSE + HTTP), salons à code, vues filtrées par poste, rotation, téléphone, opposition. Déploiement Render (`render.yaml`).
+**Lot 4 — Coop en ligne** ✅ (v0.3)
+- Serveur Node sans dépendance (SSE + HTTP), salons à code, bureau partagé, atlas réparti par dossier, épingles, double signature, questions bonus. Déploiement Render (`render.yaml`).
 
 ## 9. Écrire un bon dossier
 
