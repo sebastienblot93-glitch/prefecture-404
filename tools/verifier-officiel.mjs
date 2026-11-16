@@ -16,7 +16,10 @@ const ecart = (quoi, attendu, officiel) => ecarts.push({ quoi, attendu, officiel
 async function lire(chemin, essais = 3) {
   for (let i = 1; ; i++) {
     try {
-      const r = await fetch(API + chemin, { headers: { accept: 'application/json' } });
+      const r = await fetch(API + chemin, {
+        headers: { accept: 'application/json', 'user-agent': 'prefecture-404-verification' },
+        signal: AbortSignal.timeout(15000),
+      });
       if (r.status === 404) return null;
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       return await r.json();
@@ -27,7 +30,9 @@ async function lire(chemin, essais = 3) {
   }
 }
 
+console.log(`Interrogation de ${API}…`);
 const regions = await lire('/regions');
+console.log(`  ${regions.length} régions reçues`);
 const offR = Object.fromEntries(regions.map((r) => [r.code, r.nom]));
 for (const [code, nom] of Object.entries(REGIONS)) {
   if (!offR[code]) ecart(`Région ${code}`, nom, 'code inexistant');
@@ -36,6 +41,7 @@ for (const [code, nom] of Object.entries(REGIONS)) {
 for (const code of Object.keys(offR)) if (!REGIONS[code]) ecart(`Région ${code}`, 'absente du jeu', offR[code]);
 
 const deps = await lire('/departements');
+console.log(`  ${deps.length} départements reçus`);
 const offD = Object.fromEntries(deps.map((d) => [d.code, d]));
 for (const [code, d] of Object.entries(DEPARTEMENTS)) {
   const o = offD[code];
@@ -45,7 +51,8 @@ for (const [code, d] of Object.entries(DEPARTEMENTS)) {
 }
 for (const code of Object.keys(offD)) if (!DEPARTEMENTS[code]) ecart(`Département ${code}`, 'absent du jeu', offD[code].nom);
 
-for (const c of COMMUNES) {
+for (const [i, c] of COMMUNES.entries()) {
+  if (i % 20 === 0) console.log(`  communes ${i + 1} à ${Math.min(i + 20, COMMUNES.length)}…`);
   const o = await lire(`/communes/${c.insee}?fields=nom,codeDepartement,codeRegion`);
   if (!o) { ecart(`Commune ${c.insee}`, c.nom, 'code INSEE inexistant'); continue; }
   if (norm(o.nom) !== norm(c.nom)) ecart(`Commune ${c.insee} (nom)`, c.nom, o.nom);
