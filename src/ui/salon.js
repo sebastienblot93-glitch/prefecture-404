@@ -299,7 +299,7 @@ function rendreNote(p) {
         ${c.lecon ? `<p class="c-lecon">${esc(c.lecon)}</p>` : ''}${justif}
         <ul class="c-expl">${c.explications.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>
         ${c.note && !c.bonne ? `<p class="c-savoir">Le saviez-vous ? ${esc(c.note)}</p>` : ''}`,
-      bouton: 'Dossier suivant', action: 'suivant',
+      bouton: c.reessayer ? 'Recommencer ce dossier' : 'Dossier suivant', action: 'suivant',
     };
   }
   const n = $('#note');

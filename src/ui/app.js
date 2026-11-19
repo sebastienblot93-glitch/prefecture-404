@@ -50,7 +50,7 @@ function rendreAccueil() {
   $('#grade-suite').textContent = pg
     ? `${car.points} points de carrière. Prochaine promotion à ${pg[0]} : ${pg[1]}.`
     : `${car.points} points de carrière. Sommet de la hiérarchie atteint.`;
-  $('#liste-journees').innerHTML = JOURNEES.map((j) => {
+  $('#liste-journees').innerHTML = JOURNEES.filter((j) => !j.enLigneSeulement).map((j) => {
     const m = car.meilleurs[j.id];
     return `<li><button class="btn-journee" data-jour="${j.id}">
       <span class="j-titre">${esc(j.titre)}</span>
@@ -378,8 +378,8 @@ function finJournee(raison) {
         <td>${r.note.points}${r.note.justification ? ' ✓' : ''}</td></tr>`).join('')}</tbody>
     </table>
     <div class="bilan-actions">
-      ${P.mode === 'campagne' && JOURNEES.find((j) => j.id === P.journee.id + 1)
-        ? `<button class="btn-principal" id="bilan-suivant">${esc(JOURNEES.find((j) => j.id === P.journee.id + 1).titre)}</button>` : ''}
+      ${P.mode === 'campagne' && JOURNEES.find((j) => j.id === P.journee.id + 1 && !j.enLigneSeulement)
+        ? `<button class="btn-principal" id="bilan-suivant">${esc(JOURNEES.find((j) => j.id === P.journee.id + 1 && !j.enLigneSeulement).titre)}</button>` : ''}
       <button class="btn" id="bilan-rejouer">Rejouer</button>
       <button class="btn" id="bilan-menu">Retour à l'accueil</button>
     </div>`;

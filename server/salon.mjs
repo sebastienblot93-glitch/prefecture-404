@@ -55,7 +55,7 @@ export class Salon {
     this.maintenant = maintenant;
     this.joueurs = [];
     this.hoteId = null;
-    this.config = { partie: '1', graine: '' };
+    this.config = { partie: '0', graine: '' };
     this.phase = 'attente';
     this.partie = null;
     this.activite = maintenant();
@@ -123,7 +123,7 @@ export class Salon {
       case 'config': {
         if (!estHote) refuser("Seul l'hôte règle la partie.");
         if (this.phase === 'jeu') refuser('Partie en cours.');
-        if (['1', '2', '3', 'infini'].includes(String(a.partie))) this.config.partie = String(a.partie);
+        if (['0', '1', '2', '3', 'infini'].includes(String(a.partie))) this.config.partie = String(a.partie);
         if (typeof a.graine === 'string') this.config.graine = a.graine.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
         break;
       }
@@ -241,6 +241,7 @@ export class Salon {
       cfg = {
         mode: 'campagne', journee: j.id, contexte: contexteDe(j), dossiers: j.dossiers,
         titre: j.titre, intro: j.intro, duree: j.duree ? Math.round(j.duree * 1.6) * 1000 : null,
+        tutoriel: Boolean(j.tutoriel),
       };
     }
     const graineSalon = `${this.code}-${this.maintenant()}`;
@@ -253,6 +254,7 @@ export class Salon {
       appel: null, prochainAppel: 25000, appelsPoses: new Set(), appels: { bons: 0, faux: 0, ignores: 0 },
       hasardAppels: creerHasard(`appels-${graineSalon}`), contestations: 0, annonce: null, pause: null,
     };
+    if (cfg.tutoriel) this.partie.prochainAppel = Infinity; // pas de téléphone en formation
     if (cfg.mode === 'infini') this.partie.dossiers.push(genererDossier(cfg.hasard, cfg.contexte, 3, 1));
     this.partie.repartition = repartir(this.dossier(), equipe, this.partie.hasardRepartition);
   }
@@ -277,6 +279,7 @@ export class Salon {
       signataires: [this.pseudo(par), this.pseudo(contresigne)],
       explications: [...ref.explications, ...ref.motifs], note: c.note,
       lecon: conseilErreur(d, ref, decision),
+      reessayer: Boolean(p.tutoriel && !note.bonne),
       anomalies: [...ref.anomalies],
     };
     p.proposition = null;
@@ -286,7 +289,8 @@ export class Salon {
   suivant() {
     const p = this.partie;
     if (p.credibilite <= 0) return this.finir('credibilite');
-    p.index++;
+    if (p.tutoriel && !p.correction.bonne) p.resultats.pop(); // formation : on recommence le dossier raté
+    else p.index++;
     if (p.mode === 'campagne' && p.index >= p.dossiers.length) return this.finir('fini');
     if (p.mode === 'infini' && p.index >= p.dossiers.length)
       p.dossiers.push(genererDossier(p.hasard, p.contexte, 3, p.index + 1));
@@ -396,6 +400,7 @@ export class Salon {
 
   horloge() {
     const p = this.partie;
+    if (p.tutoriel) return 'Formation';
     if (p.duree) {
       const m = 9 * 60 + Math.min(1, p.ecoule / p.duree) * 8 * 60;
       return `${String(Math.floor(m / 60)).padStart(2, '0')} h ${String(Math.floor(m % 60)).padStart(2, '0')}`;

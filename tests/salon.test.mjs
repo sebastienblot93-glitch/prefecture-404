@@ -149,6 +149,34 @@ test("pause : réservée à l'hôte, gèle le chronomètre, le téléphone et le
   s.agir(js[1], { type: 'signaler', cible: 'd0' });
 });
 
+test('formation en duo : 2 dossiers, sans téléphone, dossier raté recommencé', () => {
+  const { s, js, horloge } = salonDe(2);
+  s.agir(js[0], { type: 'config', partie: '0' });
+  s.agir(js[0], { type: 'demarrer' });
+  s.agir(js[0], { type: 'commencer' });
+  const r = s.partie.repartition;
+  const proprio = (o) => js.find((j) => r[j.id].includes(o));
+  assert.notEqual(proprio('communes'), proprio('departements'));
+  horloge.t += 300000; s.tic();
+  assert.equal(s.partie.appel, null);
+  assert.equal(s.phase, 'jeu', 'pas de fin de journée par le temps');
+  s.agir(js[0], { type: 'proposer', decision: 'REFUSER' });
+  s.agir(js[1], { type: 'contresigner' });
+  assert.equal(s.partie.correction.reessayer, true);
+  assert.equal(s.partie.credibilite, 100);
+  s.agir(js[0], { type: 'suivant' });
+  assert.equal(s.partie.index, 0, 'même dossier');
+  s.agir(js[1], { type: 'proposer', decision: 'ACCEPTER' });
+  s.agir(js[0], { type: 'contresigner' });
+  s.agir(js[0], { type: 'suivant' });
+  s.agir(js[0], { type: 'signaler', cible: 'd1' });
+  s.agir(js[0], { type: 'proposer', decision: 'RECTIFIER' });
+  s.agir(js[1], { type: 'contresigner' });
+  s.agir(js[1], { type: 'suivant' });
+  assert.equal(s.phase, 'bilan');
+  assert.equal(s.partie.resultats.length, 2);
+});
+
 test('banque de culture : 3 choix distincts, bonne réponse retrouvée, pas de répétition', () => {
   for (const q of CULTURE) assert.equal(new Set([q.bonne, ...q.faux]).size, 3, q.question);
   const h = creerHasard('quiz');

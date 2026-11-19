@@ -7,7 +7,7 @@ import { valider, decider } from '../src/moteur/regles.js';
 
 for (const j of JOURNEES) {
   test(`${j.titre} : ${j.dossiers.length} dossiers cohérents`, () => {
-    assert.equal(j.dossiers.length, j.tutoriel ? 7 : 8);
+    assert.equal(j.dossiers.length, j.tutoriel ? 2 : 8);
     const ctx = contexteDe(j);
     const vus = new Set();
     for (const d of j.dossiers) {
@@ -17,6 +17,6 @@ for (const j of JOURNEES) {
       if (d.destination) assert.equal(r.destination, d.destination, d.id);
       vus.add(r.decision);
     }
-    assert.equal(vus.size, 4, 'chaque journée doit utiliser les quatre tampons');
+    if (!j.tutoriel) assert.equal(vus.size, 4, 'chaque journée doit utiliser les quatre tampons');
   });
 }
