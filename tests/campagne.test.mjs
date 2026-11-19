@@ -7,7 +7,7 @@ import { valider, decider } from '../src/moteur/regles.js';
 
 for (const j of JOURNEES) {
   test(`${j.titre} : ${j.dossiers.length} dossiers cohérents`, () => {
-    assert.equal(j.dossiers.length, 8);
+    assert.equal(j.dossiers.length, j.tutoriel ? 7 : 8);
     const ctx = contexteDe(j);
     const vus = new Set();
     for (const d of j.dossiers) {

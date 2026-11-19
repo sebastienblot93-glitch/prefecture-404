@@ -47,7 +47,7 @@ Pensé pour jouer **au bureau, sans se parler** :
 
 ## Contenu actuel (MVP)
 
-- 3 journées de campagne écrites à la main (24 dossiers) + mode infini généré à partir d'une graine
+- Une formation guidée (7 dossiers, un geste par dossier, sans chronomètre ni pénalité, dossiers ratés rejouables) puis 3 journées de campagne écrites à la main (24 dossiers) + mode infini généré à partir d'une graine
 - 83 communes, 101 départements, 18 régions, 101 chefs-lieux, 27 cours d'eau, 5 massifs, 4 mers
 - Atlas thématique, règlement et décrets du jour, extrait de registre falsifiable
 - Mode en ligne : salons à code, bureau partagé en direct, atlas réparti entre les joueurs, épingles, double signature, questions bonus au téléphone

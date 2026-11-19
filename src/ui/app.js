@@ -110,7 +110,7 @@ function demarrer(cfg) {
 function tic() {
   if (!P || P.enPause) return;
   P.ecoule += 0.25;
-  if (P.mode === 'campagne' && P.ecoule >= P.duree) return finJournee('retard');
+  if (P.mode === 'campagne' && P.duree && P.ecoule >= P.duree) return finJournee('retard');
   if (P.mode === 'infini') {
     P.prochaineArrivee -= 0.25;
     if (P.prochaineArrivee <= 0) {
@@ -129,9 +129,12 @@ function tic() {
 
 function majBandeau() {
   if (P.mode === 'campagne') {
-    const minutes = 9 * 60 + Math.min(1, P.ecoule / P.duree) * 8 * 60;
-    $('#horloge').textContent = `${String(Math.floor(minutes / 60)).padStart(2, '0')} h ${String(Math.floor(minutes % 60)).padStart(2, '0')}`;
-    $('#horloge').classList.toggle('tard', P.ecoule / P.duree > 0.8);
+    if (!P.duree) { $('#horloge').textContent = 'Formation'; $('#horloge').classList.remove('tard'); }
+    else {
+      const minutes = 9 * 60 + Math.min(1, P.ecoule / P.duree) * 8 * 60;
+      $('#horloge').textContent = `${String(Math.floor(minutes / 60)).padStart(2, '0')} h ${String(Math.floor(minutes % 60)).padStart(2, '0')}`;
+      $('#horloge').classList.toggle('tard', P.ecoule / P.duree > 0.8);
+    }
   } else {
     const s = Math.floor(P.ecoule);
     $('#horloge').textContent = `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, '0')}`;
@@ -268,8 +271,13 @@ function afficherCorrection(ref, decision, destination, note) {
       ${justif}
       <ul class="c-expl">${lignes.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>
       ${c.note && (!note.bonne || ref.anomalies.size) ? `<p class="c-savoir">Le saviez-vous ? ${esc(c.note)}</p>` : ''}`,
-    bouton: fin ? 'Voir le bilan' : 'Dossier suivant',
+    bouton: P.journee?.tutoriel && !note.bonne ? 'Réessayer ce dossier' : fin ? 'Voir le bilan' : 'Dossier suivant',
     action: () => {
+      if (P.journee?.tutoriel && !note.bonne) { // formation : on refait le dossier raté
+        cacherNote();
+        P.resultats.pop();
+        return afficherDossier();
+      }
       cacherNote();
       if (P.mode === 'infini') {
         P.intervalle = Math.max(15, P.intervalle - 1.5);
@@ -346,10 +354,11 @@ function finJournee(raison) {
 
   const titre = raison === 'credibilite'
     ? 'Mutation d\'office'
-    : raison === 'retard' ? '17 h 00, le guichet ferme' : 'Fin de journée';
+    : raison === 'retard' ? '17 h 00, le guichet ferme' : P.journee?.tutoriel ? 'Formation terminée' : 'Fin de journée';
   const chapeau = raison === 'credibilite'
     ? "Votre crédibilité est épuisée. Le Bureau vous mute à l'antenne administrative de l'île de Clipperton (population : zéro, dossiers : nombreux)."
-    : raison === 'retard' ? `${nonTraites} dossier${nonTraites > 1 ? 's' : ''} n'${nonTraites > 1 ? 'ont' : 'a'} pas été traité${nonTraites > 1 ? 's' : ''}.` : 'Tous les dossiers ont été traités.';
+    : raison === 'retard' ? `${nonTraites} dossier${nonTraites > 1 ? 's' : ''} n'${nonTraites > 1 ? 'ont' : 'a'} pas été traité${nonTraites > 1 ? 's' : ''}.`
+    : P.journee?.tutoriel ? 'Vous connaissez les bases du guichet. Place aux vrais dossiers : la Semaine 1 vous attend, avec son chronomètre.' : 'Tous les dossiers ont été traités.';
 
   $('#bilan').innerHTML = `
     <h2>${titre}</h2>

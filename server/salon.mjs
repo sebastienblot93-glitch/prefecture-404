@@ -240,7 +240,7 @@ export class Salon {
       const j = JOURNEES.find((x) => String(x.id) === c.partie);
       cfg = {
         mode: 'campagne', journee: j.id, contexte: contexteDe(j), dossiers: j.dossiers,
-        titre: j.titre, intro: j.intro, duree: Math.round(j.duree * 1.6) * 1000,
+        titre: j.titre, intro: j.intro, duree: j.duree ? Math.round(j.duree * 1.6) * 1000 : null,
       };
     }
     const graineSalon = `${this.code}-${this.maintenant()}`;
