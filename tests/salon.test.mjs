@@ -17,6 +17,7 @@ function salonDe(n, horloge = { t: 0 }) {
 }
 function partie(n) {
   const r = salonDe(n);
+  r.s.agir(r.js[0], { type: 'config', partie: '1' }); // la formation (par défaut) n'a pas de téléphone
   r.s.agir(r.js[0], { type: 'demarrer' });
   r.s.agir(r.js[0], { type: 'commencer' });
   return r;
